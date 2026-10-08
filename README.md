@@ -34,9 +34,10 @@ cards, picture cards or both, mostly played on a video call. Live at
   ends and the objecting team gets one of its agents covered, as the rules have it.
 - **Clocks:** off, quick (60 s for a clue, 90 s to guess, the first clue 30 s more) or set by the host.
 - **The big screen** (`/<code>/screen`): the board as the operatives see it, the clue, the teams and
-  the log; the key only at the end. For a projector or the window the host shares on a call.
-- **The look: Akte**, the case file. Manila folders, index cards, stencil lettering and a typewriter
-  for the clues; the teams in the office's own inks, Grünstift green (a circle) and Kopierstift violet
+  the log; the key only at the end. For a projector or the window the host shares on a call. The
+  lobby offers it on wider screens only: a phone is never the big screen.
+- **The look: Akte**, the case file. Manila folders, index cards, stencil lettering for headings, plain
+  Geist for the card words (they must read at a glance on a phone) and a typewriter for the clues; the teams in the office's own inks, Grünstift green (a circle) and Kopierstift violet
   (a square), so the key never depends on colour alone. Light only.
 - German and English; the word language is a room setting.
 

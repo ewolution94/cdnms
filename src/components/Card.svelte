@@ -1,5 +1,5 @@
 <!--
-  One card on the board: index-card stock with its word in stencil, or its picture. What it shows
+  One card on the board: index-card stock with its word in plain type, or its picture. What it shows
   depends on who's looking: revealed, it's the agent's ink (with a hat), a bystander's manila or the
   assassin's black; to a spymaster, an unrevealed card carries the key as a tint, a team's shape and
   a stripe, so it never depends on colour alone.
@@ -130,13 +130,15 @@
     outline-offset: 2px;
   }
 
-  /* The word fills the card's width: shorter words are set bigger. */
+  /* The word fills the card's width: shorter words are set bigger. Plain Geist as written, not the
+     stencil in capitals: the words must read at a glance on a phone (the user, 2026-10-08). 0.6em a
+     letter fits every word in the lists at 620 (Schwamm, the widest, needs 0.59); the 7px floor only
+     matters for eleven letters on the narrowest phones. */
   .w {
     max-width: 100%;
     overflow: hidden;
-    font: 800 clamp(9px, calc(96cqi / (var(--len) * 0.5 + 0.9)), min(38px, 44cqh)) / 1 var(--stencil);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    font: 620 clamp(7px, calc(96cqi / (var(--len) * 0.6 + 0.9)), min(36px, 44cqh)) / 1.1 var(--ewo-sans);
+    text-transform: capitalize;
     white-space: nowrap;
   }
   .art {
