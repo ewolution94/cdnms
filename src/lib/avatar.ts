@@ -1,14 +1,12 @@
-// An avatar is five small numbers: head, eyes, extra, mouth, colour (the maker's arrows, top to
-// bottom). Folio's doodle emblem draws the face from them (<ewo-emblem theme="doodle">, vendor/ewo;
-// development/plans/emblems.md), its wobble seeded from the numbers, so every screen draws the same
-// face. The server checks the same ranges (server/avatar.mjs; tests/avatar.test.mjs keeps them in step).
+// An avatar is six small numbers: hat, eyes, disguise, collar, colour, skin (the maker's arrows, top
+// to bottom). Folio's agent emblem draws the agent from them (<ewo-emblem theme="agent">, vendor/ewo;
+// development/plans/emblems.md), so every screen draws the same one. The server checks the same
+// ranges (server/avatar.mjs; tests/avatar.test.mjs keeps them in step).
 
 import { isEmblem, randomEmblem } from '../../vendor/ewo/elements/emblem-core.js';
 
-export type Avatar = [number, number, number, number, number];
-/** A face's mood in the game: a right guess makes it happy for a moment. */
-export type Mood = '' | 'happy';
+export type Avatar = number[];
 
-export const isAvatar = (value: unknown): value is Avatar => isEmblem('doodle', value);
+export const isAvatar = (value: unknown): value is Avatar => isEmblem('agent', value);
 
-export const randomAvatar = () => randomEmblem('doodle') as Avatar;
+export const randomAvatar = () => randomEmblem('agent') as Avatar;

@@ -1,7 +1,8 @@
 <!--
-  The face maker: Folio's emblem maker in the doodle theme (vendor/ewo; development/plans/emblems.md),
-  arrows on either side of a big face, one pair per part, and a dice for all five. Dressed as a
-  photo clipped into the file: the stage is a mugshot, the part's name a typed label.
+  The agent maker: Folio's emblem maker in the agent theme (vendor/ewo; development/plans/emblems.md),
+  arrows on either side of a big agent, one pair per part (hat, eyes, disguise, collar, colour, skin),
+  and a dice for all six. Dressed as a photo clipped into the file: the stage is a mugshot, the part's
+  name a typed label.
 -->
 <script lang="ts">
   import type { Avatar as AvatarValue } from '../lib/avatar';
@@ -9,7 +10,7 @@
   let { avatar, onchange }: { avatar: AvatarValue; onchange: (next: AvatarValue) => void } = $props();
 </script>
 
-<ewo-emblem-maker class="maker" theme="doodle" value={avatar} onchange={(e) => onchange(e.detail.value as AvatarValue)}></ewo-emblem-maker>
+<ewo-emblem-maker class="maker" theme="agent" value={avatar} onchange={(e) => onchange(e.detail.value as AvatarValue)}></ewo-emblem-maker>
 
 <style>
   .maker {
