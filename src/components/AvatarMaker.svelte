@@ -1,8 +1,9 @@
 <!--
   The agent maker: Folio's emblem maker in the agent theme (vendor/ewo; development/plans/emblems.md),
-  arrows on either side of a big agent, one pair per part (hat, eyes, disguise, collar, colour, skin),
-  and a dice for all six. Dressed as a photo clipped into the file: the stage is a mugshot, the part's
-  name a typed label.
+  laid out as tabs (the user's pick, 2026-10-08: six pairs of arrows were too many): a tab per part
+  (hat, eyes, disguise, collar, colour, skin), one pair of arrows beside the big agent (or a swipe
+  across it), a typed strip naming the choice, and a dice for all six. Dressed as a photo clipped into
+  the file: the stage is a mugshot.
 -->
 <script lang="ts">
   import type { Avatar as AvatarValue } from '../lib/avatar';
@@ -10,7 +11,7 @@
   let { avatar, onchange }: { avatar: AvatarValue; onchange: (next: AvatarValue) => void } = $props();
 </script>
 
-<ewo-emblem-maker class="maker" theme="agent" value={avatar} onchange={(e) => onchange(e.detail.value as AvatarValue)}></ewo-emblem-maker>
+<ewo-emblem-maker class="maker" theme="agent" layout="tabs" value={avatar} onchange={(e) => onchange(e.detail.value as AvatarValue)}></ewo-emblem-maker>
 
 <style>
   .maker {
@@ -19,6 +20,8 @@
     --ewo-emblem-ink: var(--ink);
   }
   .maker::part(arrow) {
+    /* Room for the photo's white frame and its tilt. */
+    margin-inline: 6px;
     padding: 0;
     border: 1.5px solid var(--ink);
     border-radius: 3px;
@@ -74,5 +77,28 @@
   }
   .maker::part(dice):active {
     transform: scale(0.97);
+  }
+  /* The strip under the photo: typed, like a label on a file card. */
+  .maker::part(strip) {
+    font: 400 15px/1.3 var(--type);
+    letter-spacing: 0.04em;
+  }
+  .maker::part(tab) {
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--paper);
+    color: var(--ink);
+    font: 600 13px/1 var(--ewo-sans);
+  }
+  .maker::part(chosen) {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .maker::part(tab):focus-visible {
+    outline: 3px solid var(--t1);
+    outline-offset: 2px;
   }
 </style>

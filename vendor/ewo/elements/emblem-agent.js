@@ -76,15 +76,15 @@ var h = "#3b2a20", g = [
 	[i("Zu", "Closed"), ({ k: e }, t) => c(`M${t - 3.5} ${p}Q${t} 53 ${t + 3.5} ${p}`, "none", e, 2.2)]
 ], v = [
 	[i("ohne", "none"), () => ({})],
-	[i("Sonnenbrille", "Sunglasses"), () => ({
+	[i("Sonnenbrille", "Sunglasses"), ({ k: e }) => ({
 		cover: "both",
 		face: c("M35 46.5H48.5L47.5 53.5C46.5 55 37.5 55 36.5 53.5Z", r, e, 1.4) + c("M51.5 46.5H65L63.5 53.5C62.5 55 53.5 55 52.5 53.5Z", r, e, 1.4) + c("M48.5 48H51.5M35 47L33 46M65 47L67 46", "none", e, 1.6) + c("M38 48.5L41 48", "none", "rgba(255,255,255,.7)", 1.2) + c("M54.5 48.5L57.5 48", "none", "rgba(255,255,255,.7)", 1.2)
 	})],
 	[i("Monokel", "Monocle"), ({ k: e }) => ({ face: l(f, p, 5.6, "rgba(255,255,255,.25)", e, 1.8) + c("M61 54C66 62 62 70 58 77", "none", "#b88a2e", 1.2) })],
 	[i("Brille", "Glasses"), ({ k: e }) => ({ face: l(d, p, 5, "none", e, 1.9) + l(f, p, 5, "none", e, 1.9) + c("M48 49.5Q50 47.5 52 49.5", "none", e, 1.7) })],
-	[i("Augenklappe", "Eye patch"), () => ({
+	[i("Augenklappe", "Eye patch"), ({ k: t }) => ({
 		cover: "left",
-		face: c("M34.5 37L60 35", "none", e, 1.6) + c("M38.4 46.4H47.6L46.6 53.4C45 55.2 41 55.2 39.4 53.4Z", e, e, 1.2)
+		face: c("M34.5 37L60 35", "none", t, 1.6) + c("M38.4 46.4H47.6L46.6 53.4C45 55.2 41 55.2 39.4 53.4Z", e, t, 1.2)
 	})],
 	[i("Nasenbrille", "Nose glasses"), ({ k: t }) => ({
 		nose: !1,

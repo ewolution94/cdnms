@@ -75,6 +75,7 @@ declare module 'svelte/elements' {
       theme?: 'heraldry' | 'doodle' | 'token' | 'tag' | 'agent';
       value?: number[] | string;
       initial?: string;
+      layout?: 'rows' | 'tabs';
       onchange?: Handler<EwoEmblemMaker, { value: number[] }>;
     };
     'ewo-halftone': Omit<HTMLAttributes<EwoHalftone>, 'onload' | 'onerror'> & { src?: string; alt?: string; cell?: number; color?: 'ink' | 'photo'; fit?: 'cover' | 'contain'; lens?: boolean; ripple?: boolean; origin?: string };

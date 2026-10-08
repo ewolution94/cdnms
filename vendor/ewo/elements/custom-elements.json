@@ -148,6 +148,22 @@
             {
               "description": "The roll button.",
               "name": "dice"
+            },
+            {
+              "description": "layout=\"tabs\": the line under the stage naming the part and its choice.",
+              "name": "strip"
+            },
+            {
+              "description": "layout=\"tabs\": the row of part tabs.",
+              "name": "tabs"
+            },
+            {
+              "description": "layout=\"tabs\": each part's tab (aria-pressed on the chosen one).",
+              "name": "tab"
+            },
+            {
+              "description": "layout=\"tabs\": the chosen part's tab, also `tab` (a page styling ::part(tab) restyles this one through ::part(chosen)).",
+              "name": "chosen"
             }
           ],
           "members": [
@@ -179,6 +195,16 @@
             },
             {
               "kind": "field",
+              "name": "#part",
+              "privacy": "private",
+              "type": {
+                "text": "number"
+              },
+              "default": "0",
+              "description": "layout=\"tabs\": the part the arrows step through."
+            },
+            {
+              "kind": "field",
               "name": "theme",
               "type": {
                 "text": "string"
@@ -197,9 +223,33 @@
               "privacy": "private"
             },
             {
+              "kind": "field",
+              "name": "#tabs",
+              "privacy": "private",
+              "readonly": true
+            },
+            {
               "kind": "method",
               "name": "#render",
               "privacy": "private"
+            },
+            {
+              "kind": "method",
+              "name": "#renderTabs",
+              "privacy": "private",
+              "description": "layout=\"tabs\": one pair of arrows for the chosen part, the strip, a tab per part."
+            },
+            {
+              "kind": "method",
+              "name": "#strip",
+              "privacy": "private",
+              "description": "layout=\"tabs\": the strip names the chosen part and its choice, a dot per option."
+            },
+            {
+              "kind": "method",
+              "name": "#labelArrows",
+              "privacy": "private",
+              "description": "layout=\"tabs\": the arrows say which part they step."
             },
             {
               "kind": "method",
@@ -307,6 +357,13 @@
                 "text": "string"
               },
               "description": "Tag: the player's name, for the initial figure."
+            },
+            {
+              "name": "layout",
+              "type": {
+                "text": "'rows' | 'tabs'"
+              },
+              "description": "rows (default): a pair of arrows per part. tabs: one pair, a tab per part, a strip naming the choice; a swipe across the stage steps too."
             }
           ],
           "superclass": {
