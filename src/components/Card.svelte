@@ -19,9 +19,12 @@
     fresh = false,
     interactive = false,
     team = null,
+    em,
     onpick,
   }: {
     card: Card;
+    /** A word's width in em of its type, measured by the board. */
+    em?: number;
     revealed: Revealed | null;
     /** The key for this card, when the viewer may see it and it's still hidden. */
     keyed?: Key | null;
@@ -41,7 +44,6 @@
 
   const k = $derived(revealed?.key ?? null);
   const label = $derived(cardName(card) + (k !== null ? `, ${keyName(k)}` : keyed !== null ? `, ${keyName(keyed)}` : ''));
-  const len = $derived(card.kind === 'word' ? [...card.text.replace(/ß/g, 'ss')].length : 0);
 </script>
 
 <button
@@ -70,7 +72,7 @@
   onclick={() => interactive && onpick?.()}
 >
   {#if card.kind === 'word'}
-    <span class="w" style="--len:{len}">{card.text}</span>
+    <span class="w" style="--em:{em ?? 6}">{card.text}</span>
   {:else}
     <svg class="art" viewBox={pictureView} aria-hidden="true">{@html pictureSvg(card)}</svg>
   {/if}
@@ -130,14 +132,15 @@
     outline-offset: 2px;
   }
 
-  /* The word fills the card's width: shorter words are set bigger. Plain Geist as written, not the
-     stencil in capitals: the words must read at a glance on a phone (the user, 2026-10-08). 0.6em a
-     letter fits every word in the lists at 620 (Schwamm, the widest, needs 0.59); the 7px floor only
-     matters for eleven letters on the narrowest phones. */
+  /* Plain Geist as written, not the stencil in capitals: the words must read at a glance on a phone.
+     One size for every word on the board, the largest at which its widest word (--word-em, from the
+     board) fits: words of many sizes looked busy (the user, 2026-10-08). That size stops at 9px; a
+     word that still doesn't fit there (a host's own, up to 14 letters) shrinks alone (--em, its own
+     width). Board.svelte's ruler measures in this type: change both together. */
   .w {
     max-width: 100%;
     overflow: hidden;
-    font: 620 clamp(7px, calc(96cqi / (var(--len) * 0.6 + 0.9)), min(36px, 44cqh)) / 1.1 var(--ewo-sans);
+    font: 620 min(max(calc(92cqi / var(--word-em)), 9px), calc(92cqi / var(--em)), 36px, 44cqh) / 1.1 var(--ewo-sans);
     text-transform: capitalize;
     white-space: nowrap;
   }

@@ -1,8 +1,9 @@
 <!--
   The board: 5 × 5 words, 5 × 4 pictures, or both. It keeps its cards' shape and takes as much of
   the space it's given as fits (a size container), so the same board serves a phone, a laptop beside
-  the call and the big screen. Turned-over cards stamp down as they change; the assassin shakes the
-  board once.
+  the call and the big screen. Every word is set at one size, the largest at which the board's widest
+  word fits (the user, 2026-10-08: words of many sizes looked busy). Turned-over cards stamp down as
+  they change; the assassin shakes the board once.
 -->
 <script lang="ts">
   import type { Game, Key, Player } from '../lib/api';
@@ -55,6 +56,32 @@
     seenGame = game.n;
   });
 
+  /** Each word's width in em of the cards' type (Card.svelte's .w), measured on the ruler below. */
+  let ems: Map<string, number> = $state(new Map());
+  let ruler: HTMLSpanElement | undefined = $state();
+  $effect(() => {
+    const words = game.cards.flatMap((c) => (c.kind === 'word' ? [c.text] : []));
+    if (!ruler || !words.length) return;
+    let live = true;
+    const measure = () => {
+      if (!live || !ruler) return;
+      const next = new Map<string, number>();
+      for (const word of words) {
+        ruler.textContent = word;
+        next.set(word, ruler.getBoundingClientRect().width / 100);
+      }
+      ruler.textContent = '';
+      ems = next;
+    };
+    measure();
+    // Again once Geist is in: until then the fallback face was measured.
+    document.fonts?.load('620 100px Geist').then(measure, () => {});
+    return () => {
+      live = false;
+    };
+  });
+  const widest = $derived(Math.max(0, ...ems.values()));
+
   const byId = $derived(new Map(players.map((p) => [p.id, p])));
   // A card is at most this wide for its height (when the space is short) and at least this tall
   // (when there's room): words like a wide index card, pictures nearer a square.
@@ -66,12 +93,13 @@
   <div
     class="board"
     class:shake
-    style="--cols:{game.cols}; --rows:{game.rows}; --wide:{(game.cols * wide) / game.rows}; --tall:{(game.cols * tall) / game.rows}"
+    style="--cols:{game.cols}; --rows:{game.rows}; --wide:{(game.cols * wide) / game.rows}; --tall:{(game.cols * tall) / game.rows}; --word-em:{widest || 6}"
     role="group"
   >
     {#each game.cards as card, i (i)}
       <Card
         {card}
+        em={card.kind === 'word' ? ems.get(card.text) : undefined}
         revealed={game.revealed[i]}
         keyed={showKey && game.key && !game.revealed[i] ? game.key[i] : null}
         selected={selected.includes(i)}
@@ -84,6 +112,7 @@
       />
     {/each}
   </div>
+  <span class="ruler" aria-hidden="true"><span bind:this={ruler}></span></span>
 </div>
 
 <style>
@@ -102,6 +131,21 @@
     gap: clamp(5px, 1.6cqw, 12px);
     width: min(100cqw, 100cqh * var(--wide));
     height: min(100cqh, min(100cqw, 100cqh * var(--wide)) / var(--tall));
+  }
+  /* Measures the words: the same type as a card's word (Card.svelte .w), at 100px, in a box of no
+     size, so the long line never widens the page. */
+  .ruler {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .ruler span {
+    font: 620 100px/1 var(--ewo-sans);
+    text-transform: capitalize;
+    white-space: nowrap;
   }
   .shake {
     animation: shake 600ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
