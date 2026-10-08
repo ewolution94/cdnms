@@ -7,7 +7,6 @@ import './emblem';
  * @attr {'heraldry' | 'doodle' | 'token' | 'tag' | 'agent'} theme - Which generator (default heraldry).
  * @attr {string} initial - Tag: the player's name, for the initial figure.
  * @attr {string} value - The numbers, comma-separated; the `value` property also takes an array. Random when missing.
- * @attr {'rows' | 'tabs'} layout - rows (default): a pair of arrows per part. tabs: one pair, a tab per part, a strip naming the choice; a swipe across the stage steps too.
  * @fires change - `detail: { value: number[] }` after a step or a roll.
  * @cssprop --ewo-emblem-maker-size - The big emblem's stage (default 200px).
  * @cssprop --ewo-emblem-maker-inset - The emblem's margin inside the stage (default 8%; Kritzle's 6%).
@@ -18,10 +17,6 @@ import './emblem';
  * @csspart tag - The strip naming the new choice.
  * @csspart legend - The part names under the stage.
  * @csspart dice - The roll button.
- * @csspart strip - layout="tabs": the line under the stage naming the part and its choice.
- * @csspart tabs - layout="tabs": the row of part tabs.
- * @csspart tab - layout="tabs": each part's tab (aria-pressed on the chosen one).
- * @csspart chosen - layout="tabs": the chosen part's tab, also `tab` (a page styling ::part(tab) restyles this one through ::part(chosen)).
  */
 export declare class EwoEmblemMaker extends EwoElement {
     #private;

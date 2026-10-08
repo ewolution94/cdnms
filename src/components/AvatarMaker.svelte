@@ -1,8 +1,8 @@
 <!--
   The agent maker: Folio's emblem maker in the agent theme (vendor/ewo; development/plans/emblems.md),
-  laid out as tabs (the user's pick, 2026-10-08: six pairs of arrows were too many): a tab per part
-  (hat, eyes, disguise, collar, colour, skin), one pair of arrows beside the big agent (or a swipe
-  across it), a typed strip naming the choice, and a dice for all six. Dressed as a photo clipped into
+  arrows on either side of the big agent like Kritzle's and Schätzle's, one pair per part, top to
+  bottom (hat, eyes, disguise, collar, skin), and a dice for all five. The user, 2026-10-08: tabs with
+  one pair lost taps, and five pairs are enough (the colour part went). Dressed as a photo clipped into
   the file: the stage is a mugshot.
 -->
 <script lang="ts">
@@ -11,7 +11,7 @@
   let { avatar, onchange }: { avatar: AvatarValue; onchange: (next: AvatarValue) => void } = $props();
 </script>
 
-<ewo-emblem-maker class="maker" theme="agent" layout="tabs" value={avatar} onchange={(e) => onchange(e.detail.value as AvatarValue)}></ewo-emblem-maker>
+<ewo-emblem-maker class="maker" theme="agent" value={avatar} onchange={(e) => onchange(e.detail.value as AvatarValue)}></ewo-emblem-maker>
 
 <style>
   .maker {
@@ -20,8 +20,6 @@
     --ewo-emblem-ink: var(--ink);
   }
   .maker::part(arrow) {
-    /* Room for the photo's white frame and its tilt. */
-    margin-inline: 6px;
     padding: 0;
     border: 1.5px solid var(--ink);
     border-radius: 3px;
@@ -42,8 +40,10 @@
     outline: 3px solid var(--t1);
     outline-offset: 2px;
   }
-  /* The mugshot: white photo paper with a thin border, a little crooked. */
+  /* The mugshot: white photo paper with a thin border, a little crooked; its margin keeps the frame
+     clear of the arrows. */
   .maker::part(stage) {
+    margin-inline: 4px;
     border-radius: 2px;
     background: #ffffff;
     box-shadow: 0 0 0 6px #ffffff, 0 0 0 7px var(--line), 0 12px 18px -10px rgb(60 40 0 / 0.5);
@@ -77,28 +77,5 @@
   }
   .maker::part(dice):active {
     transform: scale(0.97);
-  }
-  /* The strip under the photo: typed, like a label on a file card. */
-  .maker::part(strip) {
-    font: 400 15px/1.3 var(--type);
-    letter-spacing: 0.04em;
-  }
-  .maker::part(tab) {
-    min-height: 34px;
-    padding: 0 11px;
-    border: 1px solid var(--line);
-    border-radius: 3px;
-    background: var(--paper);
-    color: var(--ink);
-    font: 600 13px/1 var(--ewo-sans);
-  }
-  .maker::part(chosen) {
-    border-color: var(--ink);
-    background: var(--ink);
-    color: var(--paper);
-  }
-  .maker::part(tab):focus-visible {
-    outline: 3px solid var(--t1);
-    outline-offset: 2px;
   }
 </style>

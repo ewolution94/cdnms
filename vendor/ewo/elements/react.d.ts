@@ -63,7 +63,6 @@ declare module 'react' {
         theme?: 'heraldry' | 'doodle' | 'token' | 'tag' | 'agent';
         value?: number[] | string;
         initial?: string;
-      layout?: 'rows' | 'tabs';
         onchange?: Handler<{ value: number[] }>;
       };
       'ewo-badge': Base<EwoBadge> & {

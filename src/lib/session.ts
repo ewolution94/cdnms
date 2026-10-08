@@ -3,7 +3,7 @@
 // your score). Storage can be blocked; then nothing is remembered and everything still works.
 
 import type { Seat } from './api';
-import { isAvatar, randomAvatar, type Avatar } from './avatar';
+import { fromSixParts, isAvatar, randomAvatar, type Avatar } from './avatar';
 
 const NAME = 'cdnms:name';
 const AVATAR = 'cdnms:avatar';
@@ -33,8 +33,11 @@ export const saveName = (name: string) => write(NAME, name.trim() || null);
 /** Your avatar; a random one (kept from then on) the first time. */
 export function savedAvatar(): Avatar {
   try {
-    const value = JSON.parse(read(AVATAR) ?? 'null');
-    if (isAvatar(value)) return value;
+    const value = fromSixParts(JSON.parse(read(AVATAR) ?? 'null'));
+    if (isAvatar(value)) {
+      saveAvatar(value);
+      return value;
+    }
   } catch {
     // a new one below
   }

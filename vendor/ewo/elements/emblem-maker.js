@@ -7,15 +7,13 @@ var f = {
 		roll: "Würfeln",
 		rolled: "Gewürfelt",
 		prev: "{part}: vorherige",
-		next: "{part}: nächste",
-		parts: "Teile"
+		next: "{part}: nächste"
 	},
 	en: {
 		roll: "Roll",
 		rolled: "Rolled",
 		prev: "{part}: previous",
-		next: "{part}: next",
-		parts: "Parts"
+		next: "{part}: next"
 	}
 }, p = t`
   /* The strip naming a change sits on the stage's top edge and rises above it. Its room is the
@@ -119,39 +117,6 @@ var f = {
   @keyframes roll { to { transform: rotate(360deg); } }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-  /* layout="tabs": one tall pair of arrows, a strip naming the choice, a tab per part. */
-  /* A row, not the grid: the stage takes its size and gives way on a narrow screen (WebKit leaves a
-     min() with a percentage unresolved as a grid track, and the stage, whose emblem is absolutely
-     placed, then collapsed to nothing). */
-  .maker.tabs { display: flex; align-items: center; justify-content: center; }
-  .maker.tabs .arrow { flex: none; width: 48px; min-height: 72px; }
-  .maker.tabs .stage { flex: 0 1 var(--_stage); min-width: 0; }
-  .maker.tabs .stage { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-  .strip {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 4px 10px;
-    margin: 0;
-    font: 600 var(--ewo-text-sm) / 1.3 var(--ewo-sans);
-  }
-  .strip .part { color: var(--ewo-fg-3); font-weight: 500; }
-  .dots { display: inline-flex; gap: 4px; }
-  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ewo-line-strong); }
-  .dots i.on { background: var(--ewo-fg); }
-  .tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-  .tab {
-    min-height: 36px;
-    padding: 0 12px;
-    border: 1.5px solid var(--ewo-line-strong);
-    border-radius: var(--ewo-r-md);
-    background: var(--ewo-bg-raised);
-    color: var(--ewo-fg);
-    font: 600 var(--ewo-text-sm) / 1 var(--ewo-sans);
-    -webkit-tap-highlight-color: transparent;
-  }
-  .tab[aria-pressed='true'] { border-color: var(--ewo-fg); background: var(--ewo-fg); color: var(--ewo-bg); }
   @media (prefers-reduced-motion: reduce) {
     .hop, .rolling svg { animation: none; }
     /* Still a visible press, without the movement. */
@@ -162,14 +127,12 @@ var f = {
 	static observedAttributes = [
 		"theme",
 		"value",
-		"initial",
-		"layout"
+		"initial"
 	];
 	#e;
 	#t = 0;
-	#n = 0;
 	connectedCallback() {
-		l(this.theme, u(this.getAttribute("value"))) || this.setAttribute("value", d(this.theme).join(",")), this.#e = r(() => this.#a()), this.#a();
+		l(this.theme, u(this.getAttribute("value"))) || this.setAttribute("value", d(this.theme).join(",")), this.#e = r(() => this.#r()), this.#r();
 	}
 	disconnectedCallback() {
 		this.#e?.();
@@ -180,7 +143,7 @@ var f = {
 				this.setAttribute("value", d(this.theme).join(","));
 				return;
 			}
-			e === "value" && this.root.querySelector("ewo-emblem") ? (this.#r().value = this.value, this.#s()) : e === "initial" && this.root.querySelector("ewo-emblem") ? this.#r().setAttribute("initial", this.getAttribute("initial") ?? "") : this.#a();
+			e === "value" && this.root.querySelector("ewo-emblem") ? this.#n().value = this.value : e === "initial" && this.root.querySelector("ewo-emblem") ? this.#n().setAttribute("initial", this.getAttribute("initial") ?? "") : this.#r();
 		}
 	}
 	get theme() {
@@ -196,73 +159,34 @@ var f = {
 	set value(e) {
 		this.setAttribute("value", Array.isArray(e) ? e.join(",") : String(e));
 	}
-	#r() {
+	#n() {
 		return this.root.querySelector("ewo-emblem");
 	}
-	get #i() {
-		return this.getAttribute("layout") === "tabs";
+	#r() {
+		let e = i(), t = f[e], n = o(this.theme, e), r = (e, r) => n.map((n, i) => `<button class="arrow" part="arrow ${e}" type="button" data-press="own" data-part="${i}" data-step="${e === "prev" ? -1 : 1}" aria-label="${t[e].replace("{part}", n.name)}">${m(r)}</button>`).join("");
+		this.root.innerHTML = `<div class="maker"><div class="col">${r("prev", "M15 5l-7 7 7 7")}</div><div class="stage" part="stage"><ewo-emblem theme="${this.theme}" value="${this.value.join(",")}" boil></ewo-emblem><span class="tag" part="tag" aria-hidden="true"></span></div><div class="col">${r("next", "M9 5l7 7-7 7")}</div></div><p class="legend" part="legend">${n.map((e) => e.name).join(" · ")}</p><button class="dice" part="dice" type="button" data-press="own">${h}<span>${t.roll}</span></button><p class="sr" aria-live="polite"></p>`, this.#n().setAttribute("initial", this.getAttribute("initial") ?? "");
+		for (let e of this.root.querySelectorAll(".arrow")) e.addEventListener("click", () => this.#i(Number(e.dataset.part), Number(e.dataset.step)));
+		this.root.querySelector(".dice").addEventListener("click", () => this.#a());
+		for (let e of this.root.querySelectorAll(".arrow, .dice")) this.#o(e);
+	}
+	#i(e, t) {
+		let n = [...this.value], r = s(this.theme)[e];
+		n[e] = (n[e] + t + r) % r, this.#c(n), this.#s(t);
+		let a = o(this.theme, i())[e];
+		this.#l(`${a.name} · ${a.options[n[e]]}`);
 	}
 	#a() {
-		if (this.#i) return this.#o();
-		let e = i(), t = f[e], n = o(this.theme, e), r = (e, r) => n.map((n, i) => `<button class="arrow" part="arrow ${e}" type="button" data-press="own" data-part="${i}" data-step="${e === "prev" ? -1 : 1}" aria-label="${t[e].replace("{part}", n.name)}">${m(r)}</button>`).join("");
-		this.root.innerHTML = `<div class="maker"><div class="col">${r("prev", "M15 5l-7 7 7 7")}</div><div class="stage" part="stage"><ewo-emblem theme="${this.theme}" value="${this.value.join(",")}" boil></ewo-emblem><span class="tag" part="tag" aria-hidden="true"></span></div><div class="col">${r("next", "M9 5l7 7-7 7")}</div></div><p class="legend" part="legend">${n.map((e) => e.name).join(" · ")}</p><button class="dice" part="dice" type="button" data-press="own">${h}<span>${t.roll}</span></button><p class="sr" aria-live="polite"></p>`, this.#r().setAttribute("initial", this.getAttribute("initial") ?? "");
-		for (let e of this.root.querySelectorAll(".arrow")) e.addEventListener("click", () => this.#l(Number(e.dataset.part), Number(e.dataset.step)));
-		this.root.querySelector(".dice").addEventListener("click", () => this.#u());
-		for (let e of this.root.querySelectorAll(".arrow, .dice")) this.#d(e);
-	}
-	#o() {
-		let e = i(), t = f[e], n = o(this.theme, e);
-		this.#n = Math.min(this.#n, n.length - 1);
-		let r = (e, t) => `<button class="arrow" part="arrow ${e}" type="button" data-press="own" data-step="${e === "prev" ? -1 : 1}">${m(t)}</button>`;
-		this.root.innerHTML = `<div class="maker tabs">${r("prev", "M15 5l-7 7 7 7")}<div class="stage" part="stage"><ewo-emblem theme="${this.theme}" value="${this.value.join(",")}" boil></ewo-emblem></div>${r("next", "M9 5l7 7-7 7")}</div><p class="strip" part="strip" aria-hidden="true"></p><div class="tabs" part="tabs" role="group" aria-label="${t.parts}">` + n.map((e, t) => `<button class="tab" part="tab${t === this.#n ? " chosen" : ""}" type="button" data-press="own" data-part="${t}" aria-pressed="${t === this.#n}">${e.name}</button>`).join("") + `</div><button class="dice" part="dice" type="button" data-press="own">${h}<span>${t.roll}</span></button><p class="sr" aria-live="polite"></p>`, this.#r().setAttribute("initial", this.getAttribute("initial") ?? ""), this.#s();
-		for (let e of this.root.querySelectorAll(".arrow")) e.addEventListener("click", () => this.#l(this.#n, Number(e.dataset.step)));
-		for (let e of this.root.querySelectorAll(".tab")) e.addEventListener("click", () => {
-			this.#n = Number(e.dataset.part);
-			for (let t of this.root.querySelectorAll(".tab")) t.setAttribute("aria-pressed", String(t === e)), t.setAttribute("part", t === e ? "tab chosen" : "tab");
-			this.#s();
-		});
-		this.root.querySelector(".dice").addEventListener("click", () => this.#u());
-		for (let e of this.root.querySelectorAll(".arrow, .dice, .tab")) this.#d(e);
-		let a = this.root.querySelector(".stage"), s = null;
-		a.addEventListener("pointerdown", (e) => {
-			s = {
-				x: e.clientX,
-				y: e.clientY
-			}, a.setPointerCapture?.(e.pointerId);
-		}), a.addEventListener("pointerup", (e) => {
-			if (!s) return;
-			let t = e.clientX - s.x, n = e.clientY - s.y;
-			s = null, Math.abs(t) > 32 && Math.abs(t) > Math.abs(n) * 1.5 && this.#l(this.#n, t < 0 ? 1 : -1);
-		}), a.addEventListener("pointercancel", () => s = null), this.#c();
-	}
-	#s() {
-		let e = this.root.querySelector(".strip");
-		if (!e) return;
-		let t = o(this.theme, i())[this.#n], n = this.value[this.#n];
-		e.innerHTML = `<span><span class="part">${t.name} · </span>${t.options[n]}</span><span class="dots">${t.options.map((e, t) => `<i class="${t === n ? "on" : ""}"></i>`).join("")}</span>`, this.#c();
-	}
-	#c() {
-		let e = f[i()], t = o(this.theme, i())[this.#n]?.name ?? "";
-		for (let n of this.root.querySelectorAll(".maker.tabs .arrow")) n.setAttribute("aria-label", e[n.dataset.step === "-1" ? "prev" : "next"].replace("{part}", t));
-	}
-	#l(e, t) {
-		let n = [...this.value], r = s(this.theme)[e];
-		n[e] = (n[e] + t + r) % r, this.#p(n), this.#f(t);
-		let a = o(this.theme, i())[e];
-		this.#m(`${a.name} · ${a.options[n[e]]}`);
-	}
-	#u() {
-		if (this.#p(d(this.theme)), !a()) {
-			let e = this.#r();
+		if (this.#c(d(this.theme)), !a()) {
+			let e = this.#n();
 			e.classList.remove("hop");
 			let t = this.root.querySelector(".dice");
 			t.classList.remove("rolling"), requestAnimationFrame(() => {
 				e.classList.add("hop"), t.classList.add("rolling");
 			});
 		}
-		this.#m(f[i()].rolled);
+		this.#l(f[i()].rolled);
 	}
-	#d(e) {
+	#o(e) {
 		let t = 0, n = 0, r = () => {
 			clearTimeout(n), n = window.setTimeout(() => e.classList.remove("pressed"), Math.max(0, 120 - (performance.now() - t)));
 		};
@@ -275,8 +199,8 @@ var f = {
 			"pointerleave"
 		]) e.addEventListener(t, r);
 	}
-	#f(e) {
-		a() || this.#r().animate([
+	#s(e) {
+		a() || this.#n().animate([
 			{ transform: "none" },
 			{ transform: `translateX(${e * 4}px) scale(1.04)` },
 			{ transform: "none" }
@@ -285,14 +209,14 @@ var f = {
 			easing: "cubic-bezier(0.3, 1.4, 0.5, 1)"
 		});
 	}
-	#p(e) {
+	#c(e) {
 		this.setAttribute("value", e.join(",")), this.emit("change", { value: e });
 	}
-	#m(e) {
+	#l(e) {
 		let t = this.root.querySelector(".sr");
 		t.textContent = e;
 		let n = this.root.querySelector(".tag");
-		n && (n.textContent = e, n.classList.add("on"), clearTimeout(this.#t), this.#t = window.setTimeout(() => n.classList.remove("on"), 1100));
+		n.textContent = e, n.classList.add("on"), clearTimeout(this.#t), this.#t = window.setTimeout(() => n.classList.remove("on"), 1100);
 	}
 };
 n("ewo-emblem-maker", g);
