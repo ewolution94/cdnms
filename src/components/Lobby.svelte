@@ -197,7 +197,7 @@
       <span class="url">{link}</span>
       {#if qrOpen}<div class="qr"><Qr url={link} /></div>{/if}
       <a class="screen" href="/{view.code}/screen" target="_blank" rel="noopener">{t('bigScreen')} ↗</a>
-      <span class="hint">{t('bigScreenHint')}</span>
+      <span class="hint screen-hint">{t('bigScreenHint')}</span>
     </section>
 
     <div class="teams">
@@ -456,6 +456,14 @@
     font-size: 12.5px;
     line-height: 1.4;
     color: var(--mute);
+  }
+  /* A phone is never the big screen, and the screen view doesn't fit one: no link there (the user,
+     2026-10-08; the same rule in Kritzle, Schätzle and Vollmond). The second query is a phone on its side. */
+  @media (max-width: 699px), (max-height: 499px) {
+    .screen,
+    .screen-hint {
+      display: none;
+    }
   }
   .center {
     text-align: center;
