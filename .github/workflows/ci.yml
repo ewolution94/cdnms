@@ -1,0 +1,84 @@
+name: CI
+
+# Runs on pull requests, and is the gate docker-publish.yml calls before it publishes
+# anything, so the checks guarding a PR and the checks guarding a deploy can't drift apart.
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Matches the Dockerfile.
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # The built page and the game, served by the real production server.
+      - name: Smoke test the production server
+        run: |
+          PORT=6299 node server/server.mjs &
+          for _ in $(seq 1 20); do curl -sf http://127.0.0.1:6299/healthz && break; sleep 0.5; done
+          base=http://127.0.0.1:6299
+          curl -sf $base/ | grep -q '<title>CDNMS</title>'
+          curl -sf $base/KXPT | grep -q '<title>CDNMS</title>'
+          curl -sf $base/KXPT/screen | grep -q '<title>CDNMS</title>'
+          curl -sI $base/ | grep -qi "content-security-policy: default-src 'self'"
+          curl -sI $base/ | grep -qi "cache-control: no-cache"
+          curl -sf $base/manifest.webmanifest | grep -q '"name": "CDNMS"'
+          curl -sf -o /dev/null $base/sw.js
+          curl -sf -o /dev/null $base/icon.svg
+          asset=$(curl -s $base/ | grep -o '/assets/[^"]*\.js' | head -1)
+          curl -sI "$base$asset" | grep -qi 'cache-control: public, max-age=31536000, immutable'
+          test "$(curl -s -o /dev/null -w '%{http_code}' $base/assets/missing.js)" = 404
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST $base/)" = 405
+          # The API never falls through to the page.
+          test "$(curl -s -o /dev/null -w '%{http_code}' $base/api/nothing)" = 404
+          curl -sf $base/api/config | grep -q '"packs":\["classic"'
+          # A room with a player and three bots, seated as two teams; the start; the first turn.
+          room=$(curl -sf -X POST -H 'content-type: application/json' --data '{"name":"CI","avatar":[1,2,3,4,5]}' $base/api/rooms)
+          code=$(echo "$room" | node -pe 'JSON.parse(require("fs").readFileSync(0)).code')
+          token=$(echo "$room" | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+          post() { curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -H "x-cdnms-token: $token" --data "$2" $base/api/rooms/$code/$1; }
+          curl -sf -X POST -H 'content-type: application/json' --data '{"name":"Zwei"}' $base/api/rooms/$code/join | grep -q '"player"'
+          test "$(post bot '{"add":true,"team":0,"role":"op"}')" = 204
+          test "$(post bot '{"add":true,"team":1,"role":"spy"}')" = 204
+          test "$(post bot '{"add":true,"team":1,"role":"op"}')" = 204
+          test "$(post settings '{"cards":"mixed"}')" = 204
+          test "$(post start '{}')" = 204
+          curl -s -N --max-time 2 "$base/api/rooms/$code/events" > screen.txt || true
+          grep -q '"phase":"play"' screen.txt
+          grep -q '"kind":"pic"' screen.txt
+          # The big screen never gets the key during a game.
+          grep -q '"key":null' screen.txt
+          if grep -q '"key":\[' screen.txt; then echo "the big screen got the key"; exit 1; fi
+          # A clue that's on the board is refused with the word that's in the way.
+          word=$(node -pe 'const v=JSON.parse(require("fs").readFileSync("screen.txt","utf8").split("data: ")[1].split("\n")[0]); v.game.cards.find(c=>c.kind==="word").text')
+          curl -s -X POST -H 'content-type: application/json' -H "x-cdnms-token: $token" --data "{\"word\":\"$word\",\"number\":1}" $base/api/rooms/$code/clue | grep -Eq '"error":"(clue-board|not-spy|wrong-phase)"'
+          # The Census forwarder is wired in; without CDNMS_CENSUS it answers locally.
+          test "$(curl -s -o /dev/null -w '%{http_code}' $base/_e.js)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data '{}' $base/_e)" = 204

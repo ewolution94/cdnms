@@ -1,0 +1,77 @@
+<!-- A room you have a seat in: the lobby, the game, or its end. -->
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { api, type Config } from '../lib/api';
+  import { t } from '../lib/i18n.svelte';
+  import type { Room } from '../lib/room.svelte';
+  import Final from './Final.svelte';
+  import Lobby from './Lobby.svelte';
+  import Play from './Play.svelte';
+  import Sounds from './Sounds.svelte';
+
+  let { room, onleave, onrejoin }: { room: Room; onleave: () => void; onrejoin: () => void } = $props();
+
+  let config: Config | null = $state.raw(null);
+  const view = $derived(room.view);
+
+  onMount(() => {
+    api.config().then((c) => (config = c), () => {});
+  });
+
+  // Removed from the room (kicked, or dropped from the lobby): ask for a name again.
+  $effect(() => {
+    if (view && view.phase !== 'gone' && view.me === null) onrejoin();
+  });
+
+  async function leave() {
+    try {
+      await room.act('leave');
+    } catch {
+      // gone either way
+    }
+    onleave();
+  }
+</script>
+
+<Sounds {room} />
+
+{#if !view}
+  <p class="label wait">{t('reconnecting')}</p>
+{:else if view.phase === 'gone'}
+  <div class="gone sheet">
+    <p class="stencil">{t('gone')}</p>
+    <button class="btn" type="button" onclick={onleave}>{t('home')}</button>
+  </div>
+{:else if view.phase === 'lobby'}
+  <Lobby {room} {view} {config} />
+  <button class="btn quiet leave" type="button" onclick={leave}>{t('leaveGame')}</button>
+{:else if view.phase === 'final' && view.game}
+  <Final {room} {view} onleave={leave} />
+{:else if view.game}
+  <Play {room} {view} />
+{/if}
+
+<style>
+  .wait {
+    text-align: center;
+    margin-top: 40px;
+  }
+  .gone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    max-width: 420px;
+    margin: 40px auto 0;
+    padding: 28px;
+    text-align: center;
+  }
+  .gone .stencil {
+    margin: 0;
+    font-size: 26px;
+  }
+  .leave {
+    display: flex;
+    margin: 18px auto 0;
+  }
+</style>

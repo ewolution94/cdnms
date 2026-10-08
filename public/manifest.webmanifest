@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "CDNMS",
+  "short_name": "CDNMS",
+  "description": "Ein Wort, eine Zahl, ein Brett voller Karten: Codenames für zusammen.",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#e3cf9c",
+  "theme_color": "#e3cf9c",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
