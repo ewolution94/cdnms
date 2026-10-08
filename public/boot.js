@@ -1,9 +1,11 @@
-// Applies the saved language before first paint (the family's key `ewo:lang`; no key means
-// System). CDNMS is light only (development/plans/cdnms.md), so a saved theme is left alone.
-// Keep in step with src/lib/i18n.svelte.ts (systemLang).
+// Applies the saved language before first paint (the family's key `ewo:lang`). CDNMS speaks German
+// first: no key means Deutsch, and System is saved as 'system'. CDNMS is light only
+// (development/plans/cdnms.md), so a saved theme is left alone.
+// Keep in step with src/lib/i18n.svelte.ts (storedChoice, systemLang).
 try {
   var lang = localStorage.getItem('ewo:lang');
-  if (lang !== 'en' && lang !== 'de') {
+  if (lang !== 'en' && lang !== 'de' && lang !== 'system') lang = 'de';
+  if (lang === 'system') {
     // System: the first of the browser's languages the game speaks, English otherwise.
     var tags = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
     lang = 'en';

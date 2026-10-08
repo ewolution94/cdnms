@@ -1,21 +1,25 @@
 // German and English. The choice lives in Settings (General → Language): System follows the
-// browser's languages, Deutsch or English pins one. It's kept under `ewo:lang` (the family's key;
-// System removes it), and public/boot.js applies it before first paint. The words on the board have
-// their own language, a room setting (server/words/).
+// browser's languages, Deutsch or English pins one. CDNMS speaks German first, whatever the browser
+// says: its players are the German-speaking afternoon meeting (the user, 2026-10-08). So with nothing
+// saved it's Deutsch, and System is saved as the word 'system' under `ewo:lang` (the family's key,
+// whose other apps take a missing key as System). public/boot.js applies it before first paint. The
+// words on the board have their own language, a room setting (server/words/).
 
 export type Lang = 'de' | 'en';
 export type LangChoice = Lang | 'system';
 
 const KEY = 'ewo:lang';
+/** What a first visit shows. */
+const DEFAULT: LangChoice = 'de';
 
 function storedChoice(): LangChoice {
   try {
     const stored = localStorage.getItem(KEY);
-    if (stored === 'en' || stored === 'de') return stored;
+    if (stored === 'en' || stored === 'de' || stored === 'system') return stored;
   } catch {
-    // storage blocked: follow the browser
+    // storage blocked: the default
   }
-  return 'system';
+  return DEFAULT;
 }
 
 /** The first of the browser's languages the game speaks, English otherwise (as public/boot.js). */
@@ -30,14 +34,13 @@ export function systemLang(): Lang {
 const choice = storedChoice();
 export const i18n = $state({ choice, lang: choice === 'system' ? systemLang() : choice });
 
-/** Stores a choice ('system' removes it) and shows the page in that language. */
+/** Stores a choice and shows the page in that language. */
 export function setLanguage(next: LangChoice) {
   i18n.choice = next;
   i18n.lang = next === 'system' ? systemLang() : next;
   document.documentElement.lang = i18n.lang;
   try {
-    if (next === 'system') localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, next);
+    localStorage.setItem(KEY, next);
   } catch {
     // not kept
   }
