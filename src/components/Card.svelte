@@ -124,8 +124,11 @@
       transform: translateY(-1px);
     }
   }
-  .card.interactive:active {
-    transform: scale(0.97);
+  /* The mouse's press; a finger gets Folio's pressFeedback (main.ts). */
+  @media (hover: hover) and (pointer: fine) {
+    .card.interactive:active {
+      transform: scale(0.97);
+    }
   }
   .card:focus-visible {
     outline: 3px solid var(--t1);

@@ -1,7 +1,9 @@
 <!--
   The spymaster's desk: the clue word, checked as it's typed (the server's own rules, server/clue.mjs),
   and the number, which follows the cards chosen on the board until it's set by hand. Senden types
-  the clue out big and gives a few seconds to take it back before it goes.
+  the clue out big and gives a few seconds to take it back before it goes. Then "Zurücknehmen"
+  becomes "Senden", and the wait for the server shows on it (src/lib/waits.ts): "Nochmal" there if
+  the network or the server failed, back to the desk if the server refused the clue.
 -->
 <script lang="ts">
   import { clueProblem } from '../../server/clue.mjs';
@@ -9,6 +11,8 @@
   import { cardName } from '../lib/cards';
   import { errorText, t } from '../lib/i18n.svelte';
   import type { Room } from '../lib/room.svelte';
+  import { waitAt } from '../lib/waits';
+  import { tick } from 'svelte';
 
   let { room, view, selected, onsent }: { room: Room; view: View; selected: number[]; onsent: () => void } = $props();
 
@@ -19,9 +23,11 @@
   /** Set by hand: the chosen cards no longer move it. */
   let touched = $state(false);
   let error = $state('');
-  let busy = $state(false);
   /** Counting down to sending: the clue is shown big, with a way back. */
   let going = $state(false);
+  /** The countdown is over: the clue is on its way (or waits for "Nochmal"). */
+  let sending = $state(false);
+  let sendButton: HTMLButtonElement | undefined = $state();
   let timer = 0;
 
   const game = $derived(view.game!);
@@ -62,9 +68,13 @@
       error = errorText('clue-empty');
       return;
     }
-    if (problem || busy) return;
+    if (problem || going) return;
     going = true;
-    timer = window.setTimeout(submit, UNDO_MS);
+    timer = window.setTimeout(async () => {
+      sending = true;
+      await tick();
+      void submit();
+    }, UNDO_MS);
   }
 
   function takeBack() {
@@ -72,20 +82,31 @@
     going = false;
   }
 
+  /** After a failed send: back to the desk, the clue still in the field. */
+  function backToDesk() {
+    error = '';
+    sending = false;
+    going = false;
+  }
+
   async function submit() {
-    busy = true;
+    error = '';
     try {
-      await room.act('clue', { word: word.trim(), number, cards: selected });
+      await waitAt(sendButton, (signal) => room.act('clue', { word: word.trim(), number, cards: selected }, signal), t('wait_clue'));
       word = '';
       touched = false;
+      going = false;
+      sending = false;
       onsent();
     } catch (e) {
       const err = e instanceof ApiError ? e : null;
       const w = typeof err?.detail.word === 'string' ? err.detail.word : '';
       error = err?.code === 'clue-board' && w ? t('clueBoardWord', { word: w }) : err?.code === 'clue-part' && w ? t('cluePartWord', { word: w }) : errorText(err?.code ?? 'other');
-    } finally {
-      busy = false;
-      going = false;
+      // The network or the server: "Nochmal" stays on the button. A refusal: back to the desk.
+      if (!['timeout', 'offline', 'busy'].includes(err?.code ?? '')) {
+        going = false;
+        sending = false;
+      }
     }
   }
 
@@ -98,7 +119,15 @@
       <span class="label">{t('sendingIn')}</span>
       <span class="big"><span class="typed">{word.trim()}</span> <b class="stencil">{shown}</b></span>
       <span class="bar" style="--ms:{UNDO_MS}ms"></span>
-      <button class="btn block" type="button" onclick={takeBack} disabled={busy}>{t('takeBack')}</button>
+      {#if sending}
+        <button class="btn primary block" type="button" bind:this={sendButton} onclick={() => void submit()}>{t('send')}</button>
+        {#if error}
+          <p class="error" role="alert">{error}</p>
+          <button class="btn quiet block" type="button" onclick={backToDesk}>{t('takeBack')}</button>
+        {/if}
+      {:else}
+        <button class="btn block" type="button" onclick={takeBack}>{t('takeBack')}</button>
+      {/if}
     </div>
   {:else}
     <div class="field">
@@ -124,7 +153,7 @@
       <span class="num stencil" aria-live="polite">{shown}</span>
       <button class="step" type="button" aria-label="+1" onclick={() => step(1)}>+</button>
       <button class="step inf" type="button" aria-pressed={number === 'inf'} aria-label="∞" onclick={infinity}>∞</button>
-      <button class="btn primary send" type="submit" disabled={busy || Boolean(problem) || !word.trim()}>{t('send')}</button>
+      <button class="btn primary send" type="submit" disabled={Boolean(problem) || !word.trim()}>{t('send')}</button>
     </div>
     <p class="hint">
       {#if chosen.length}
@@ -188,8 +217,11 @@
     font: 700 20px/1 var(--ewo-sans);
     -webkit-tap-highlight-color: transparent;
   }
-  .step:active {
-    transform: scale(0.95);
+  /* The mouse's press; a finger gets Folio's pressFeedback (main.ts). */
+  @media (hover: hover) and (pointer: fine) {
+    .step:active {
+      transform: scale(0.95);
+    }
   }
   .step.inf[aria-pressed='true'] {
     background: var(--ink);

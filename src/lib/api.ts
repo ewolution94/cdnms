@@ -116,6 +116,8 @@ export interface Game {
   last: { turn: number; team: Team; reason: TurnEnd } | null;
   winner: Team | null;
   ended: TurnEnd | null;
+  /** The host who ended the game early ('stopped'). */
+  stoppedBy: string | null;
   startedAt: number;
   endedAt: number | null;
   stats: Stats | null;
@@ -162,6 +164,11 @@ export interface Config {
 }
 
 /** A refusal from the server ("no-room", "clue-board" …) or a network failure ("offline"). */
+/**
+ * A refusal from the server ("no-room", "spy-taken" …), a network failure ("offline"), the server or
+ * Cloudflare in trouble ("busy": a 5xx without the game's own answer) or no answer in time
+ * ("timeout": Folio's track() gave up). The last three are worth "Try again" (waiting.ts).
+ */
 export class ApiError extends Error {
   constructor(
     readonly code: string,
@@ -177,44 +184,53 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     response = await fetch(path, { ...init, cache: 'no-store' });
   } catch {
-    // Safari says "Load failed", Chrome "Failed to fetch": classify by type (learnings/ios-and-webkit.md).
-    throw new ApiError('offline');
+    // Given up on (the signal from track()), or the network: Safari says "Load failed", Chrome
+    // "Failed to fetch", so classify by type (learnings/ios-and-webkit.md).
+    throw new ApiError(init.signal?.aborted ? 'timeout' : 'offline');
   }
   if (response.status === 204) return undefined as T;
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     const { error, ...detail } = body ?? {};
-    throw new ApiError(error ?? `http-${response.status}`, response.status, detail);
+    // A 5xx without the game's own error is the NAS or Cloudflare (a 502, a 1033 page).
+    throw new ApiError(error ?? (response.status >= 500 ? 'busy' : `http-${response.status}`), response.status, detail);
   }
   return body as T;
 }
 
-const post = (body: unknown, token?: string): RequestInit => ({
+const post = (body: unknown, token?: string, signal?: AbortSignal): RequestInit => ({
   method: 'POST',
   headers: { 'content-type': 'application/json', ...(token ? { 'x-cdnms-token': token } : {}) },
   body: JSON.stringify(body ?? {}),
+  signal,
 });
 
 /**
  * A deploy restarts the server and ends every room; for a few seconds a create or join can fail.
- * One quiet retry, then the error (learnings/projects/vollmond.md).
+ * One quiet retry, then the error (learnings/projects/vollmond.md). Safe for create and join: they
+ * carry a key, so a retry gets the seat a first try may have made. Not once the page gave up.
  */
-async function again<T>(fn: () => Promise<T>): Promise<T> {
+async function again<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
   try {
     return await fn();
   } catch (error) {
-    if (!(error instanceof ApiError) || (error.code !== 'offline' && error.status < 500)) throw error;
+    if (signal?.aborted || !(error instanceof ApiError) || (error.code !== 'offline' && error.status < 500)) throw error;
     await new Promise((r) => setTimeout(r, 1500));
+    if (signal?.aborted) throw error;
     return fn();
   }
 }
 
 export const api = {
   config: () => again(() => request<Config>('/api/config')),
-  create: (name: string, avatar: Avatar) => again(() => request<Seat>('/api/rooms', post({ name, avatar }))),
+  /** `key`: the same for every try of one "New game", so a retry after a timeout gets the same room. */
+  create: (name: string, avatar: Avatar, key?: string, signal?: AbortSignal) =>
+    again(() => request<Seat>('/api/rooms', post({ name, avatar, key }, undefined, signal)), signal),
   info: (code: string) => request<{ code: string; phase: Phase; players: number; full: boolean }>(`/api/rooms/${code}`),
-  join: (code: string, name: string, avatar: Avatar | null, token?: string) => again(() => request<Seat>(`/api/rooms/${code}/join`, post({ name, avatar, token }))),
-  act: (seat: Seat, action: string, body?: unknown) => request<void>(`/api/rooms/${seat.code}/${action}`, post(body, seat.token)),
+  /** `key`: as for create, so a retried join doesn't seat you twice. */
+  join: (code: string, name: string, avatar: Avatar | null, token?: string, key?: string, signal?: AbortSignal) =>
+    again(() => request<Seat>(`/api/rooms/${code}/join`, post({ name, avatar, token, key }, undefined, signal)), signal),
+  act: (seat: Seat, action: string, body?: unknown, signal?: AbortSignal) => request<void>(`/api/rooms/${seat.code}/${action}`, post(body, seat.token, signal)),
 };
 
 /** Room codes: four consonants (server/game.mjs → CODE). */

@@ -7,9 +7,22 @@ import '../vendor/ewo/elements/segmented.js';
 import '../vendor/ewo/elements/switch.js';
 import '../vendor/ewo/elements/emblem.js';
 import '../vendor/ewo/elements/emblem-maker.js';
+import '../vendor/ewo/elements/connection.js';
 
 import { mount } from 'svelte';
 import App from './App.svelte';
+// Every tap answers on a phone, the games' lively way: a deep press and a bounce on release
+// (Folio's pressFeedback, development/plans/mobile-touch.md; Schätzle is the games' pilot).
+import { pressFeedback } from '../vendor/ewo/elements/press.js';
+// A wait for the server shows at the control that asked (Folio's track() via src/lib/waits.ts,
+// development/plans/waiting-states.md). CDNMS's working mark is a redaction: a black bar drawn over a
+// typed line and wiped off again, like the logo's blacked-out vowels (styled in app.css).
+import { configureWaiting } from '../vendor/ewo/elements/waiting.js';
+
+pressFeedback({ preset: 'lively' });
+configureWaiting({
+  mark: '<svg class="redact" viewBox="0 0 28 14" aria-hidden="true"><path class="typed" d="M2 7h6M10.5 7h8M21 7h5" /><path class="bar" pathLength="60" d="M2 7h24" /></svg>',
+});
 
 function start() {
   mount(App, { target: document.getElementById('app')! });

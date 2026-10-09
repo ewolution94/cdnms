@@ -194,8 +194,12 @@ button {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.btn:active:not(:disabled) {
-  transform: scale(0.97);
+/* :active presses are for the mouse; a finger gets Folio's pressFeedback (main.ts), which iOS shows
+   on every tap and :active doesn't. Both at once would shrink a button twice. */
+@media (hover: hover) and (pointer: fine) {
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
 }
 @media (hover: hover) {
   .btn:not(.primary):hover:not(:disabled) {
@@ -282,6 +286,33 @@ textarea.input {
   font-weight: 600;
 }
 
+/* Ending or leaving a game (settings' "This game", the host's ⋯ sheet): the second tap says what
+   happens, then the red button does it (development/plans/end-game.md). */
+.sure {
+  margin: 0;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pair .btn {
+  flex: 1 1 140px;
+}
+.btn.danger-fill {
+  border-color: var(--bad);
+  background: var(--bad);
+  color: #ffffff;
+}
+@media (hover: hover) {
+  .btn.danger-fill:hover:not(:disabled) {
+    background: #9a2019;
+  }
+}
+
 /* The logo (Logo.svelte): the name in stencil, its missing vowels blacked out like a redacted file. */
 .logo {
   display: inline-flex;
@@ -315,5 +346,49 @@ textarea.input {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Waiting for the server (Folio's track(), src/lib/waits.ts): CDNMS's working mark redacts a typed
+   line, a black bar drawn across it and wiped off again in a loop, like the logo's blacked-out
+   vowels. Calm: one bar, no bounce; under reduced motion the line stays redacted. The bubble for
+   words too long for a small button is an ink label. */
+.ewo-wait-mark .redact {
+  width: 2em;
+  height: 1em;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+}
+.ewo-wait-mark .redact .typed {
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  opacity: 0.4;
+}
+.ewo-wait-mark .redact .bar {
+  stroke-width: 8;
+  stroke-dasharray: 60;
+  animation: redact 1.3s cubic-bezier(0.6, 0, 0.3, 1) infinite;
+}
+@keyframes redact {
+  0% {
+    stroke-dashoffset: 60;
+  }
+  50%,
+  62% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -60;
+  }
+}
+:root {
+  --ewo-wait-bubble-bg: var(--ink);
+  --ewo-wait-bubble-fg: var(--paper);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ewo-wait-mark .redact .bar {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }

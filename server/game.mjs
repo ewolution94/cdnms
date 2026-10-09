@@ -125,6 +125,31 @@ export function createGames({ clock = realClock, randomInt = (n) => cryptoInt(n)
     return r;
   }
 
+  // ---- a page's retry is the same request ---------------------------------------------------
+  // "New game" and a join carry a key the page keeps for every try of the same tap: a retry after
+  // the page gave up (Folio's track(), 12 s) returns the seat the first try made, instead of a second
+  // room or a second seat (development/plans/waiting-states.md). Kept for a minute.
+
+  /** @type {Map<string, { seat: { code: string, player: string, token: string }, at: number }>} */
+  const keyed = new Map();
+  const KEY = /^[A-Za-z0-9-]{8,64}$/;
+  const KEY_TTL = 60_000;
+
+  function keyedSeat(key, code = null) {
+    if (typeof key !== 'string' || !KEY.test(key)) return null;
+    const t = clock.now();
+    for (const [k, v] of keyed) if (t - v.at > KEY_TTL) keyed.delete(k);
+    const hit = keyed.get(key);
+    if (!hit || (code && hit.seat.code !== code)) return null;
+    const p = rooms.get(hit.seat.code)?.players.get(hit.seat.player);
+    return p && !p.left ? { ...hit.seat } : null;
+  }
+
+  function remember(key, seat) {
+    if (typeof key === 'string' && KEY.test(key)) keyed.set(key, { seat, at: clock.now() });
+    return seat;
+  }
+
   function within(stamps, windowMs, limit) {
     const t = clock.now();
     while (stamps.length && stamps[0] <= t - windowMs) stamps.shift();
@@ -262,6 +287,8 @@ export function createGames({ clock = realClock, randomInt = (n) => cryptoInt(n)
       assassinMarks: 0,
       winner: null,
       ended: null,
+      /** Who ended the game early ('stop'), for the end screen. */
+      stoppedBy: null,
       startedAt: clock.now(),
       endedAt: null,
     };
@@ -577,6 +604,7 @@ export function createGames({ clock = realClock, randomInt = (n) => cryptoInt(n)
       last: g.last,
       winner: g.winner,
       ended: g.ended,
+      stoppedBy: g.stoppedBy,
       startedAt: g.startedAt,
       endedAt: g.endedAt,
       stats: final ? stats(g) : null,
@@ -696,8 +724,11 @@ export function createGames({ clock = realClock, randomInt = (n) => cryptoInt(n)
       return rooms.size;
     },
 
-    /** @param {{ name: unknown, avatar?: unknown }} body */
-    create({ name, avatar }) {
+    /** @param {{ name: unknown, avatar?: unknown, key?: unknown }} body */
+    create({ name, avatar, key }) {
+      // A retry of the same "New game" (the first try timed out on the page): the same room and seat.
+      const again = keyedSeat(key);
+      if (again) return again;
       if (!cleanName(name)) throw new GameError('name');
       if (rooms.size >= LIMITS.rooms || !within(created, 10 * 60_000, LIMITS.roomsPer10Min)) throw new GameError('busy', 429);
       const code = newCode();
@@ -726,7 +757,7 @@ export function createGames({ clock = realClock, randomInt = (n) => cryptoInt(n)
       r.host = p.id;
       // The room's first player gives the clues for team 0 until someone else wants to.
       p.role = 'spy';
-      return { code, player: p.id, token: p.token };
+      return remember(key, { code, player: p.id, token: p.token });
     },
 
     /** A quick look before joining: does the room exist, and is it open? */
@@ -738,11 +769,13 @@ export function createGames({ clock = realClock, randomInt = (n) => cryptoInt(n)
 
     /**
      * Joins, or comes back: a known token gets the same seat again. A token alone that no longer
-     * fits (kicked, or dropped from the lobby) is refused.
-     * @param {{ name?: unknown, avatar?: unknown, token?: unknown }} body
+     * fits (kicked, or dropped from the lobby) is refused. `key`: a retried join gets the same seat.
+     * @param {{ name?: unknown, avatar?: unknown, token?: unknown, key?: unknown }} body
      */
-    join(code, { name, avatar, token }) {
+    join(code, { name, avatar, token, key }) {
       const r = room(code);
+      const again = keyedSeat(key, r.code);
+      if (again) return again;
       if (typeof token === 'string' && token) {
         for (const p of r.players.values()) {
           if (p.token === token && !p.left && !p.bot) return { code: r.code, player: p.id, token: p.token };
@@ -751,7 +784,7 @@ export function createGames({ clock = realClock, randomInt = (n) => cryptoInt(n)
       }
       const p = addPlayer(r, name, avatar);
       touch(r);
-      return { code: r.code, player: p.id, token: p.token };
+      return remember(key, { code: r.code, player: p.id, token: p.token });
     },
 
     view(code, playerId = null) {
@@ -905,8 +938,11 @@ export function createGames({ clock = realClock, randomInt = (n) => cryptoInt(n)
           return;
         }
         case 'stop': {
+          // The host ends the game for everyone: the end screen with the board and the agents found
+          // so far, marked as ended early by them (development/plans/end-game.md).
           requireHost(r, p);
           requirePhase(r, 'play');
+          r.game.stoppedBy = p.id;
           finish(r, null, 'stopped');
           return;
         }

@@ -1,18 +1,19 @@
 <!--
   The end: the verdict stamped on the file, the whole key, what every clue was meant for beside what
-  the team picked, a few numbers, the evening's tally, and "Nochmal" with the next spymasters.
+  the team picked, a few numbers, the evening's tally, and "Nochmal" with the next spymasters. A game
+  the host ended early says so with a stamp, and how many agents each team had found by then.
 -->
 <script lang="ts">
   import { ApiError, type View } from '../lib/api';
   import { errorText, names, t, teamName } from '../lib/i18n.svelte';
   import type { Room } from '../lib/room.svelte';
+  import { actAt } from '../lib/waits';
   import Board from './Board.svelte';
   import Log from './Log.svelte';
 
-  let { room, view, onleave }: { room: Room; view: View; onleave: () => void } = $props();
+  let { room, view, onleave }: { room: Room; view: View; onleave: (from?: Event) => void } = $props();
 
   let error = $state('');
-  let busy = $state(false);
 
   const game = $derived(view.game!);
   const isHost = $derived(view.me === view.host);
@@ -35,16 +36,16 @@
   );
   const best = $derived(game.stats?.best ? game.clues.find((c) => c.turn === game.stats!.best!.turn) : null);
   const minutes = $derived(Math.max(1, Math.round((game.stats?.ms ?? 0) / 60_000)));
+  /** Ended early by the host: who, for the stamp. */
+  const stoppedBy = $derived(game.ended === 'stopped' && game.stoppedBy ? (view.players.find((p) => p.id === game.stoppedBy)?.name ?? '') : null);
 
-  async function act(action: string, body?: unknown) {
+  /** A move; the wait shows at the tapped button (src/lib/waits.ts). */
+  async function act(action: string, body: unknown, from: Event) {
     error = '';
-    busy = true;
     try {
-      await room.act(action, body);
+      await actAt(room, action, body, from);
     } catch (e) {
       error = errorText(e instanceof ApiError ? e.code : 'other');
-    } finally {
-      busy = false;
     }
   }
 </script>
@@ -59,6 +60,16 @@
       <h1 class="stencil">{verdict}</h1>
     {/if}
     {#if winner !== null}<p class="why">{verdict}</p>{/if}
+    {#if stoppedBy !== null}<span class="stamp early">{t('endedBy', { name: stoppedBy })}</span>{/if}
+    {#if winner === null}
+      <!-- Where the teams had got to: the agents found so far. -->
+      <p class="found">
+        <span class="label">{t('agentsFound')}</span>
+        {#each [0, 1] as const as team (team)}
+          <span class="count"><span class="shape t{team}"></span><span><b>{game.total[team] - game.left[team]}</b>/{game.total[team]}</span></span>
+        {/each}
+      </p>
+    {/if}
     <p class="tally">
       <span class="label">{t('tally')}</span>
       <span class="shape t0"></span><b>{view.tally[0]}</b>
@@ -90,14 +101,14 @@
   <div class="actions">
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if isHost}
-      <button class="btn primary block" type="button" disabled={busy} onclick={() => act('rematch')}>
+      <button class="btn primary block" type="button" onclick={(e) => act('rematch', undefined, e)}>
         {nextNames.length ? t('againRotate', { names: names(nextNames) }) : t('again')}
       </button>
-      <button class="btn block" type="button" disabled={busy} onclick={() => act('rematch', { lobby: true })}>{t('changeTeams')}</button>
+      <button class="btn block" type="button" onclick={(e) => act('rematch', { lobby: true }, e)}>{t('changeTeams')}</button>
     {:else}
       <p class="wait">{t('waitAgain', { name: hostName })}</p>
     {/if}
-    <button class="btn quiet" type="button" onclick={onleave}>{t('leaveGame')}</button>
+    <button class="btn quiet" type="button" onclick={(e) => onleave(e)}>{t('leaveGame')}</button>
   </div>
 </div>
 
@@ -164,6 +175,39 @@
   .why {
     margin: 0;
     font: 400 16px/1.3 var(--type);
+  }
+  .found {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin: 2px 0 0;
+  }
+  .found .count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font: 400 16px/1 var(--type);
+  }
+  .found b {
+    font: 800 22px/1 var(--stencil);
+  }
+  /* "Vorzeitig beendet von Anna": the file's own stamp, under the title (in the flow, so a long
+     title on a phone never runs into it). */
+  .early {
+    align-self: flex-start;
+    margin: 6px 0 2px 4px;
+    animation: slam-small 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 250ms both;
+  }
+  @keyframes slam-small {
+    from {
+      opacity: 0;
+      transform: rotate(-12deg) scale(1.8);
+    }
+    to {
+      opacity: 0.86;
+      transform: rotate(-3deg) scale(1);
+    }
   }
   .tally {
     display: flex;

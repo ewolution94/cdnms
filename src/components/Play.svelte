@@ -14,6 +14,7 @@
   import { errorText, t, teamName, type Key } from '../lib/i18n.svelte';
   import { prefs } from '../lib/prefs.svelte';
   import type { Room } from '../lib/room.svelte';
+  import { actAt } from '../lib/waits';
   import Board from './Board.svelte';
   import ClueBar from './ClueBar.svelte';
   import Dock from './Dock.svelte';
@@ -25,7 +26,7 @@
   import SpyDock from './SpyDock.svelte';
   import Teams from './Teams.svelte';
 
-  let { room, view }: { room: Room; view: View } = $props();
+  let { room, view, onleave }: { room: Room; view: View; onleave: (from: Event) => Promise<void> } = $props();
 
   let stage: HTMLElement | undefined = $state();
   let selected: number[] = $state([]);
@@ -35,6 +36,8 @@
   let peek = $state(false);
   let logOpen = $state(false);
   let hostOpen = $state(false);
+  /** The host's "End game" in the ⋯ sheet, waiting for its second tap. */
+  let stopSure = $state(false);
   let settingsOpen = $state(false);
   let menuFor: string | null = $state(null);
   let toast = $state('');
@@ -100,25 +103,41 @@
     });
   }
 
-  async function act(action: string, body?: unknown) {
+  /** A move; with the tapped control, the wait shows there (src/lib/waits.ts). */
+  async function act(action: string, body?: unknown, from?: Event) {
     error = '';
     try {
-      await room.act(action, body);
+      await actAt(room, action, body, from);
     } catch (e) {
       error = errorText(e instanceof ApiError ? e.code : 'other');
     }
   }
 
-  function move(team: Team | null, role: 'spy' | 'op') {
-    const id = menuFor;
-    menuFor = null;
-    void act('move', { player: id, team, role });
+  /** A move from a sheet: the sheet stays open while it waits, closes when it's done, says why it failed. */
+  let sheetError = $state('');
+  async function fromSheet(action: string, body: unknown, from: Event, done: () => void) {
+    sheetError = '';
+    try {
+      await actAt(room, action, body, from);
+      done();
+    } catch (e) {
+      sheetError = errorText(e instanceof ApiError ? e.code : 'other');
+    }
   }
 
-  function remove() {
+  function move(team: Team | null, role: 'spy' | 'op', from: Event) {
+    void fromSheet('move', { player: menuFor, team, role }, from, () => (menuFor = null));
+  }
+
+  function remove(from: Event) {
     const p = menuPlayer;
-    menuFor = null;
-    if (p) void act(p.bot ? 'bot' : 'kick', p.bot ? { add: false, player: p.id } : { player: p.id });
+    if (p) void fromSheet(p.bot ? 'bot' : 'kick', p.bot ? { add: false, player: p.id } : { player: p.id }, from, () => (menuFor = null));
+  }
+
+  function closeHost() {
+    hostOpen = false;
+    stopSure = false;
+    sheetError = '';
   }
 
   function choosePlayer(p: Player) {
@@ -209,8 +228,8 @@
           {#if isHost}
             <span class="ask">{t('ruleAsk')}</span>
             <span class="rule">
-              <button class="btn small" type="button" onclick={() => act('rule', { uphold: false })}>{t('ruleStands')}</button>
-              <button class="btn small" type="button" onclick={() => act('rule', { uphold: true })}>{t('ruleFails')}</button>
+              <button class="btn small" type="button" onclick={(e) => act('rule', { uphold: false }, e)}>{t('ruleStands')}</button>
+              <button class="btn small" type="button" onclick={(e) => act('rule', { uphold: true }, e)}>{t('ruleFails')}</button>
             </span>
           {:else}
             <span class="ask">{t('hostDecides', { name: hostName })}</span>
@@ -250,19 +269,29 @@
   {/if}
 </ewo-sheet>
 
-<ewo-sheet open={hostOpen} label={t('hostMenu')} oncancel={() => (hostOpen = false)} onclose={() => (hostOpen = false)}>
+<ewo-sheet open={hostOpen} label={t('hostMenu')} oncancel={closeHost} onclose={closeHost}>
   <span slot="heading">{t('hostMenu')}</span>
   {#if hostOpen}
     <div class="sheetbody">
-      <button class="btn block" type="button" onclick={() => ((hostOpen = false), act('pass'))}>{t('pass')}</button>
+      <button class="btn block" type="button" onclick={(e) => fromSheet('pass', undefined, e, closeHost)}>{t('pass')}</button>
       <Teams {view} onplayer={choosePlayer} />
-      <button class="btn quiet block danger" type="button" onclick={() => ((hostOpen = false), act('stop'))}>{t('stopGame')}</button>
+      <!-- Ending, the same way as in settings' "This game": a second tap that says what happens. -->
+      {#if stopSure}
+        <p class="sure">{t('endSure')}</p>
+        <div class="pair">
+          <button class="btn danger-fill" type="button" onclick={(e) => fromSheet('stop', undefined, e, closeHost)}>{t('endYes')}</button>
+          <button class="btn" type="button" onclick={() => (stopSure = false)}>{t('keepPlaying')}</button>
+        </div>
+      {:else}
+        <button class="btn quiet block danger" type="button" onclick={() => (stopSure = true)}>{t('stopGame')}</button>
+      {/if}
+      {#if sheetError}<p class="error" role="alert">{sheetError}</p>{/if}
     </div>
   {/if}
 </ewo-sheet>
 
-<PlayerMenu player={menuPlayer} playing onmove={move} onremove={remove} onclose={() => (menuFor = null)} />
-<Settings open={settingsOpen} onclose={() => (settingsOpen = false)} />
+<PlayerMenu player={menuPlayer} playing onmove={move} onremove={remove} onclose={() => ((menuFor = null), (sheetError = ''))} error={sheetError} />
+<Settings open={settingsOpen} onclose={() => (settingsOpen = false)} {room} {onleave} />
 
 <style>
   .stage {

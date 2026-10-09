@@ -16,6 +16,8 @@ export class Room {
   view: View | null = $state.raw(null);
   /** The stream is open. */
   live = $state(false);
+  /** It has been open before: a closed stream now is a reconnect, not the first connect. */
+  wasLive = $state(false);
   /** Server clock minus ours, for the countdown. */
   offset = $state(0);
 
@@ -24,6 +26,7 @@ export class Room {
   #timer = 0;
   #closed = false;
   #react = new Set<ReactListener>();
+  #ready = new Set<() => void>();
 
   constructor(
     readonly code: string,
@@ -47,10 +50,30 @@ export class Room {
     document.removeEventListener('visibilitychange', this.#wake);
   }
 
-  /** A move; throws ApiError with the server's reason. */
-  act(action: string, body?: unknown) {
+  /** A move; throws ApiError with the server's reason. `signal`: from track(), which may give up. */
+  act(action: string, body?: unknown, signal?: AbortSignal) {
     if (!this.seat) return Promise.reject(new Error('no seat'));
-    return api.act(this.seat, action, body);
+    return api.act(this.seat, action, body, signal);
+  }
+
+  /** Resolves with the first view (the room is ready to show); rejects when `signal` gives up. */
+  ready(signal?: AbortSignal) {
+    if (this.view) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const done = () => {
+        this.#ready.delete(done);
+        resolve();
+      };
+      this.#ready.add(done);
+      signal?.addEventListener(
+        'abort',
+        () => {
+          this.#ready.delete(done);
+          reject(signal.reason);
+        },
+        { once: true },
+      );
+    });
   }
 
   /** Milliseconds left until a server timestamp. */
@@ -72,12 +95,14 @@ export class Room {
     source.onopen = () => {
       this.#attempt = 0;
       this.live = true;
+      this.wasLive = true;
     };
     source.addEventListener('view', (event) => {
       const view = parse<View>(event);
       if (!view) return;
       if (typeof view.now === 'number') this.offset = view.now - Date.now();
       this.view = view;
+      for (const done of [...this.#ready]) done();
       if (view.phase === 'gone') this.close();
     });
     source.addEventListener('react', (event) => {

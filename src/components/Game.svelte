@@ -4,6 +4,7 @@
   import { api, type Config } from '../lib/api';
   import { t } from '../lib/i18n.svelte';
   import type { Room } from '../lib/room.svelte';
+  import { actAt } from '../lib/waits';
   import Final from './Final.svelte';
   import Lobby from './Lobby.svelte';
   import Play from './Play.svelte';
@@ -23,9 +24,10 @@
     if (view && view.phase !== 'gone' && view.me === null) onrejoin();
   });
 
-  async function leave() {
+  /** Leaving waits at its button (src/lib/waits.ts); you're out of the room on this page either way. */
+  async function leave(from?: Event) {
     try {
-      await room.act('leave');
+      await actAt(room, 'leave', undefined, from);
     } catch {
       // gone either way
     }
@@ -36,7 +38,7 @@
 <Sounds {room} />
 
 {#if !view}
-  <p class="label wait">{t('reconnecting')}</p>
+  <p class="label wait">{t(room.wasLive ? 'reconnecting' : 'connecting')}</p>
 {:else if view.phase === 'gone'}
   <div class="gone sheet">
     <p class="stencil">{t('gone')}</p>
@@ -44,11 +46,11 @@
   </div>
 {:else if view.phase === 'lobby'}
   <Lobby {room} {view} {config} />
-  <button class="btn quiet leave" type="button" onclick={leave}>{t('leaveGame')}</button>
+  <button class="btn quiet leave" type="button" onclick={(e) => leave(e)}>{t('leaveGame')}</button>
 {:else if view.phase === 'final' && view.game}
   <Final {room} {view} onleave={leave} />
 {:else if view.game}
-  <Play {room} {view} />
+  <Play {room} {view} onleave={leave} />
 {/if}
 
 <style>

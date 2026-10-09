@@ -6,9 +6,11 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
 
-  let { ms = 650, disabled = false, onhold, children }: { ms?: number; disabled?: boolean; onhold: () => void; children: Snippet } = $props();
+  /** `onhold` gets the button, so the wait for the server can show on it (src/lib/waits.ts). */
+  let { ms = 650, disabled = false, onhold, children }: { ms?: number; disabled?: boolean; onhold: (button: HTMLButtonElement) => void; children: Snippet } = $props();
 
   let holding = $state(false);
+  let button: HTMLButtonElement | undefined = $state();
   let timer = 0;
 
   function start() {
@@ -17,7 +19,7 @@
     timer = window.setTimeout(() => {
       holding = false;
       navigator.vibrate?.(12);
-      onhold();
+      if (button) onhold(button);
     }, ms);
   }
   function stop() {
@@ -27,6 +29,7 @@
 </script>
 
 <button
+  bind:this={button}
   class="hold"
   class:holding
   type="button"

@@ -357,3 +357,55 @@ test('a game nobody watches ends; an empty room is forgotten', () => {
   games.tick();
   assert.throws(() => games.view(code), (e) => e.code === 'no-room');
 });
+
+test('a retried New game or join carries its key and gets the same seat, for a minute', () => {
+  const { games, clock } = setup();
+  const host = games.create({ name: 'Anna', key: 'create-key-1' });
+  assert.deepEqual(games.create({ name: 'Anna', key: 'create-key-1' }), host);
+  assert.equal(games.size, 1);
+  const ben = games.join(host.code, { name: 'Ben', key: 'join-key-01' });
+  assert.deepEqual(games.join(host.code, { name: 'Ben', key: 'join-key-01' }), ben);
+  assert.equal(games.view(host.code, host.player).players.length, 2);
+  // Another key, or no key, is another tap: another seat.
+  assert.notEqual(games.join(host.code, { name: 'Ben', key: 'join-key-02' }).player, ben.player);
+  assert.notEqual(games.join(host.code, { name: 'Ben' }).player, ben.player);
+  // A join key never answers for another room, and after a minute it's forgotten.
+  const other = games.create({ name: 'Lea' });
+  assert.notEqual(games.join(other.code, { name: 'Ben', key: 'join-key-01' }).player, ben.player);
+  clock.advance(61_000);
+  assert.notEqual(games.join(host.code, { name: 'Ben', key: 'join-key-01' }).player, ben.player);
+});
+
+test('the host ends a running game for everyone: the end, marked as ended early by them', () => {
+  const { games, code, act, pa, pb, anna, ben } = started();
+  throws(() => act(ben, 'stop'), 'not-host');
+  act(anna, 'stop');
+  for (const page of [pa, pb]) {
+    assert.equal(page.view.phase, 'final');
+    assert.equal(page.view.game.ended, 'stopped');
+    assert.equal(page.view.game.stoppedBy, anna.player);
+    assert.equal(page.view.game.winner, null);
+  }
+  // Nothing to end at the end; Play again starts clean.
+  throws(() => act(anna, 'stop'), 'wrong-phase');
+  act(anna, 'rematch');
+  assert.equal(pa.view.phase, 'play');
+  assert.equal(pa.view.game.stoppedBy, null);
+  assert.equal(games.view(code, anna.player).game.ended, null);
+});
+
+test('nothing to end in the lobby', () => {
+  const { games } = setup();
+  const r = room(games, 3);
+  throws(() => r.act(r.host, 'stop'), 'wrong-phase');
+});
+
+test('anyone can leave a running game: the others play on, and the host hands over', () => {
+  const { games, code, pa, pl, anna, ben } = started({ others: 5 });
+  games.act(code, ben.token, 'leave');
+  assert.equal(pa.view.phase, 'play');
+  assert.equal(pa.view.players.find((p) => p.id === ben.player), undefined);
+  games.act(code, anna.token, 'leave');
+  assert.equal(pl.view.phase, 'play');
+  assert.ok(pl.view.host && pl.view.host !== anna.player);
+});

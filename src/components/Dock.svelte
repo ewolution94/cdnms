@@ -9,12 +9,12 @@
   import { cardName } from '../lib/cards';
   import { errorText, t, teamName } from '../lib/i18n.svelte';
   import type { Room } from '../lib/room.svelte';
+  import { actAt } from '../lib/waits';
   import Hold from './Hold.svelte';
 
   let { room, view, myMark }: { room: Room; view: View; myMark: number | null } = $props();
 
   let error = $state('');
-  let busy = $state(false);
 
   const game = $derived(view.game!);
   const turn = $derived(game.turn!);
@@ -38,40 +38,43 @@
         : t('otherGuesses', { team: teamName(turn.team) }),
   );
 
-  async function act(action: string, body?: unknown) {
+  /** A move; the wait shows at the control that made it (src/lib/waits.ts), which holds it locked. */
+  async function act(action: string, body: unknown, from: Event | Element) {
     error = '';
-    busy = true;
     try {
-      await room.act(action, body);
+      await actAt(room, action, body, from);
     } catch (e) {
       error = errorText(e instanceof ApiError ? e.code : 'other');
-    } finally {
-      busy = false;
     }
+  }
+
+  /** Reactions stay instant: no wait, no lock. */
+  function react(e: number) {
+    room.act('react', { e }).catch((err) => (error = errorText(err instanceof ApiError ? err.code : 'other')));
   }
 </script>
 
 <div class="dock sheet">
   {#if guessing}
     {#if myMark !== null}
-      <Hold disabled={busy || markers < need || Boolean(game.objection)} onhold={() => act('reveal', { card: myMark })}>
+      <Hold disabled={markers < need || Boolean(game.objection)} onhold={(el) => act('reveal', { card: myMark }, el)}>
         <b>{t('holdReveal')}</b>
         <small>{cardName(game.cards[myMark])}{need > 1 ? ` · ${markers}/${need}` : ''}</small>
       </Hold>
     {:else}
       <p class="status">{t('tapCard')}</p>
     {/if}
-    <button class="btn block" type="button" disabled={busy || turn.guesses < 1} onclick={() => act('end')}>{t('endTurn')}</button>
+    <button class="btn block" type="button" disabled={turn.guesses < 1} onclick={(e) => act('end', undefined, e)}>{t('endTurn')}</button>
   {:else}
     <p class="status">{status}</p>
     {#if canObject}
-      <button class="btn small object" type="button" disabled={busy} onclick={() => act('object')}>{t('object')}</button>
+      <button class="btn small object" type="button" onclick={(e) => act('object', undefined, e)}>{t('object')}</button>
     {/if}
   {/if}
   {#if !pokerFace && me}
     <div class="reactions" role="group" aria-label="Reaktionen">
       {#each view.reactions as emoji, e (emoji)}
-        <button type="button" class="react" onclick={() => act('react', { e })}>{emoji}</button>
+        <button type="button" class="react" onclick={() => react(e)}>{emoji}</button>
       {/each}
     </div>
   {/if}
@@ -113,8 +116,11 @@
     line-height: 1;
     -webkit-tap-highlight-color: transparent;
   }
-  .react:active {
-    transform: scale(0.9);
+  /* The mouse's press; a finger gets Folio's pressFeedback (main.ts). */
+  @media (hover: hover) and (pointer: fine) {
+    .react:active {
+      transform: scale(0.9);
+    }
   }
   @media (hover: hover) {
     .react:hover {

@@ -37,6 +37,10 @@
   });
 </script>
 
+{#if view?.phase !== 'gone'}
+  <ewo-connection class="connection" state={room.live ? 'online' : room.wasLive ? 'reconnecting' : 'connecting'}></ewo-connection>
+{/if}
+
 <div class="screen">
   <header class="top">
     <Logo />
@@ -50,7 +54,7 @@
   </header>
 
   {#if !view}
-    <p class="wait label">{t('reconnecting')}</p>
+    <p class="wait label">{t(room.wasLive ? 'reconnecting' : 'connecting')}</p>
   {:else if view.phase === 'gone'}
     <p class="wait stencil">{t('gone')}</p>
   {:else if view.phase === 'lobby' || !view.game}
@@ -81,6 +85,17 @@
           <ClueBar {room} {view} big />
         {:else if view.game.winner !== null}
           <div class="sheet verdict"><span class="shape t{view.game.winner}"></span><b class="stencil">{t('wins', { team: teamName(view.game.winner) })}</b><span class="stamp">{t('solved')}</span></div>
+        {:else if view.phase === 'final'}
+          <!-- Ended without a winner (the host ended it, or a team emptied): where the teams had got to. -->
+          {@const g = view.game}
+          {@const by = g.ended === 'stopped' ? view.players.find((p) => p.id === g.stoppedBy)?.name : null}
+          <div class="sheet verdict">
+            <b class="stencil">{g.ended === 'left' ? t('endLeft') : t('endStopped')}</b>
+            {#each [0, 1] as const as team (team)}
+              <span class="found"><span class="shape t{team}"></span><span><b class="stencil">{g.total[team] - g.left[team]}</b>/{g.total[team]}</span></span>
+            {/each}
+            {#if by}<span class="stamp early">{t('endedBy', { name: by })}</span>{/if}
+          </div>
         {/if}
         <div class="boardwrap">
           <Board game={view.game} players={view.players} showKey={view.phase === 'final'} />
@@ -99,6 +114,11 @@
 </div>
 
 <style>
+  .connection {
+    --ewo-connection-top: 2vh;
+    --ewo-connection-bg: var(--ink);
+    --ewo-connection-fg: var(--paper);
+  }
   .screen {
     display: flex;
     flex-direction: column;
@@ -245,12 +265,23 @@
   }
   .verdict {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 14px;
+    gap: 10px 14px;
     padding: 14px 20px;
   }
+  /* Each part on one line; the row wraps between them instead (a long title, a long name). */
   .verdict b {
     font-size: 40px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .verdict .stamp {
+    white-space: nowrap;
+  }
+  /* A long stamp tilts less, or its ends leave the sheet. */
+  .verdict .early {
+    transform: rotate(-2.5deg);
   }
   .verdict .shape {
     width: 20px;
@@ -259,6 +290,15 @@
   .verdict .stamp {
     margin-left: auto;
     font-size: 20px;
+  }
+  .verdict .found {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font: 400 22px/1 var(--type);
+  }
+  .verdict .found b {
+    font-size: 32px;
   }
   .side {
     display: flex;

@@ -10,6 +10,7 @@
   import { errorText, t, teamName, type Key } from '../lib/i18n.svelte';
   import type { Room } from '../lib/room.svelte';
   import { saveAvatar, saveCustom, savedCustom } from '../lib/session';
+  import { actAt } from '../lib/waits';
   import Avatar from './Avatar.svelte';
   import AvatarMaker from './AvatarMaker.svelte';
   import PlayerMenu from './PlayerMenu.svelte';
@@ -114,12 +115,25 @@
     }
   });
 
-  async function act(action: string, body?: unknown) {
+  /** A move; with the tapped control, the wait shows there (src/lib/waits.ts). */
+  async function act(action: string, body?: unknown, from?: Event) {
     error = '';
     try {
-      await room.act(action, body);
+      await actAt(room, action, body, from);
     } catch (e) {
       error = errorText(e instanceof ApiError ? e.code : 'other');
+    }
+  }
+
+  /** The player menu's moves: it stays open while they wait, and says why one failed. */
+  let menuError = $state('');
+  async function fromMenu(action: string, body: unknown, from: Event) {
+    menuError = '';
+    try {
+      await actAt(room, action, body, from);
+      menuFor = null;
+    } catch (e) {
+      menuError = errorText(e instanceof ApiError ? e.code : 'other');
     }
   }
 
@@ -141,16 +155,13 @@
     } else if (isHost) menuFor = p.id;
   }
 
-  function move(team: Team | null, role: 'spy' | 'op') {
-    const id = menuFor;
-    menuFor = null;
-    void act('move', { player: id, team, role });
+  function move(team: Team | null, role: 'spy' | 'op', from: Event) {
+    void fromMenu('move', { player: menuFor, team, role }, from);
   }
 
-  function remove() {
+  function remove(from: Event) {
     const p = menuPlayer;
-    menuFor = null;
-    if (p) void act(p.bot ? 'bot' : 'kick', p.bot ? { add: false, player: p.id } : { player: p.id });
+    if (p) void fromMenu(p.bot ? 'bot' : 'kick', p.bot ? { add: false, player: p.id } : { player: p.id }, from);
   }
 
   function changeAvatar(next: AvatarValue) {
@@ -208,14 +219,14 @@
           {#if spy}
             {@render playerRow(spy, team)}
           {:else}
-            <button class="seat" type="button" onclick={() => act('seat', { team, role: 'spy' })}>{t('becomeSpy')}</button>
+            <button class="seat" type="button" onclick={(e) => act('seat', { team, role: 'spy' }, e)}>{t('becomeSpy')}</button>
           {/if}
           <span class="label">{t('ops')}</span>
           <div class="ops" role="list">
             {#each ops as p (p.id)}{@render playerRow(p, team)}{/each}
           </div>
           {#if !(me?.team === team && me?.role === 'op')}
-            <button class="seat" type="button" onclick={() => act('seat', { team, role: 'op' })}>{t('joinTeam')}</button>
+            <button class="seat" type="button" onclick={(e) => act('seat', { team, role: 'op' }, e)}>{t('joinTeam')}</button>
           {/if}
         </section>
       {/each}
@@ -225,14 +236,14 @@
       <span class="label">{t('watching')}</span>
       {#each watching as p (p.id)}{@render playerRow(p, null)}{/each}
       {#if me?.team !== null}
-        <button class="btn quiet small" type="button" onclick={() => act('seat', { team: null })}>{t('watch')}</button>
+        <button class="btn quiet small" type="button" onclick={(e) => act('seat', { team: null }, e)}>{t('watch')}</button>
       {/if}
     </div>
 
     {#if isHost}
       <div class="hostrow">
-        <button class="btn small" type="button" onclick={() => act('shuffle')}>{t('shuffle')}</button>
-        <button class="btn small" type="button" onclick={() => act('bot', { add: true })}>{t('addBot')}</button>
+        <button class="btn small" type="button" onclick={(e) => act('shuffle', undefined, e)}>{t('shuffle')}</button>
+        <button class="btn small" type="button" onclick={(e) => act('bot', { add: true }, e)}>{t('addBot')}</button>
       </div>
     {/if}
   </div>
@@ -359,14 +370,14 @@
     {#if error}<p class="error" role="alert">{error}</p>{/if}
     {#if isHost}
       {#if blocker}<p class="hint center">{blocker}</p>{/if}
-      <button class="btn primary block" type="button" disabled={Boolean(blocker)} onclick={() => act('start')}>{t('start')}</button>
+      <button class="btn primary block" type="button" disabled={Boolean(blocker)} onclick={(e) => act('start', undefined, e)}>{t('start')}</button>
     {:else}
       <p class="hint center">{t('waitHost', { name: hostName })}</p>
     {/if}
   </div>
 </div>
 
-<PlayerMenu player={menuPlayer} onmove={move} onremove={remove} onclose={() => (menuFor = null)} />
+<PlayerMenu player={menuPlayer} onmove={move} onremove={remove} onclose={() => ((menuFor = null), (menuError = ''))} error={menuError} />
 
 <ewo-sheet open={avatarOpen} label={t('changeAvatar')} oncancel={() => (avatarOpen = false)} onclose={() => ((avatarShown = false), (avatarOpen = false))}>
   <span slot="heading">{t('changeAvatar')}</span>

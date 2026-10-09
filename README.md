@@ -33,6 +33,10 @@ cards, picture cards or both, mostly played on a video call. Live at
 - **Einspruch:** the other team's spymaster can object to a clue; the host decides. Upheld, the turn
   ends and the objecting team gets one of its agents covered, as the rules have it.
 - **Clocks:** off, quick (60 s for a clue, 90 s to guess, the first clue 30 s more) or set by the host.
+- **Ending a game:** the host can end it for everyone, and anyone can leave, from the settings sheet's
+  "Dieses Spiel" (the host also from the ⋯ sheet), each after a second tap that says what happens.
+  The end then shows the board, the key, the agents each team had found and a stamp, "Vorzeitig
+  beendet von Anna" (development/plans/end-game.md).
 - **The big screen** (`/<code>/screen`): the board as the operatives see it, the clue, the teams and
   the log; the key only at the end. For a projector or the window the host shares on a call. The
   lobby offers it on wider screens only: a phone is never the big screen.
@@ -49,6 +53,11 @@ cards, picture cards or both, mostly played on a video call. Live at
 - **SSE down, JSON moves up** (`server/api.mjs`). Each page holds one `EventSource` with two named
   events: `view` (the room as this page may see it, built per player) and `react`. Everything else is
   a small POST with the seat's token in `x-cdnms-token`.
+- **Waiting, at the button you tapped** (`src/lib/waits.ts`, Folio's `track()`; development/plans/
+  waiting-states.md): it stays pressed until the server answers, shows the redaction after 150 ms, says
+  what it's doing after 1.2 s, "Dauert länger …" after 6 s, and gives up with "Nochmal" at 12 s. New
+  game and a join carry a key, so a retry never makes a second room or seat; the screen changes once
+  the room's first view is there. `<ewo-connection>` says when the stream is lost and back.
 - **Clue checks** live in `server/clue.mjs`, imported by the server and by the spymaster's page alike.
 - **Bots** play in the server: a bot spymaster gives a harmless word for one or two of its cards, bot
   operatives guess (usually what was meant) when no person on their team is online. They're there to
@@ -57,8 +66,8 @@ cards, picture cards or both, mostly played on a video call. Live at
   `en.mjs`), most with two meanings; no word on a list contains another. Work-safe.
 - **Picture motifs:** 165 line drawings on a 24-unit grid (`server/pictures/motifs.mjs`), 49 with a
   hollow where a second motif fits.
-- **Faces:** Folio's emblems in their doodle theme (`<ewo-emblem>`, `<ewo-emblem-maker>`, shared with
-  Kritzle), dressed as mugshots clipped into the file.
+- **Faces:** Folio's emblems in their agent theme (`<ewo-emblem>`, `<ewo-emblem-maker>`: hat, eyes,
+  disguise, collar, skin), dressed as mugshots clipped into the file.
 - **Visit counts:** `/_e.js` and `/_e` are forwarded to Census over the shared Docker network
   (`server/census.mjs`), adding only `X-Site: cdnms`. Without `CDNMS_CENSUS` (local runs) the
   forwarder answers with an empty beacon and counts nothing.

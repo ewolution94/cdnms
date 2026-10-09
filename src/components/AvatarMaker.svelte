@@ -75,7 +75,10 @@
     -webkit-tap-highlight-color: transparent;
     transition: transform var(--ewo-dur-1) var(--ewo-ease);
   }
-  .maker::part(dice):active {
-    transform: scale(0.97);
+  /* The mouse's press; a finger gets Folio's pressFeedback (main.ts). */
+  @media (hover: hover) and (pointer: fine) {
+    .maker::part(dice):active {
+      transform: scale(0.97);
+    }
   }
 </style>
