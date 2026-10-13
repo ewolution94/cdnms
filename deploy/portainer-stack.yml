@@ -14,6 +14,12 @@ services:
     image: ghcr.io/ewolution94/cdnms:latest
     container_name: cdnms
     restart: unless-stopped
+    healthcheck:
+      # Every ~10 minutes, each container on its own interval so they never line up (plans/nas-load.md).
+      interval: 628s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     ports:
       # The port from the workspace's registry (development/.claude/skills/portainer/ports.json).
       - "6200:6200"
