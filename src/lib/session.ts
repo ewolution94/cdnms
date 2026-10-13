@@ -3,10 +3,12 @@
 // your score). Storage can be blocked; then nothing is remembered and everything still works.
 
 import type { Seat } from './api';
-import { fromSixParts, isAvatar, randomAvatar, type Avatar } from './avatar';
+import { fromFiveParts, fromSixParts, isAvatar, randomAvatar, type Avatar } from './avatar';
 
 const NAME = 'cdnms:name';
-const AVATAR = 'cdnms:avatar';
+/** Today's avatar (hat, hair, face, collar, skin); `cdnms:avatar` held the one from before 2026-10-13. */
+const AVATAR = 'cdnms:agent';
+const OLD_AVATAR = 'cdnms:avatar';
 const CUSTOM = 'cdnms:custom';
 const SEAT = 'cdnms:seat:';
 
@@ -30,10 +32,16 @@ function write(key: string, value: string | null) {
 export const savedName = () => read(NAME) ?? '';
 export const saveName = (name: string) => write(NAME, name.trim() || null);
 
-/** Your avatar; a random one (kept from then on) the first time. */
+/** Your avatar; a random one (kept from then on) the first time. One saved before 2026-10-13 becomes
+ * the same agent in today's parts. */
 export function savedAvatar(): Avatar {
   try {
-    const value = fromSixParts(JSON.parse(read(AVATAR) ?? 'null'));
+    const old = read(OLD_AVATAR);
+    if (old !== null) {
+      write(OLD_AVATAR, null);
+      if (read(AVATAR) === null) write(AVATAR, JSON.stringify(fromFiveParts(fromSixParts(JSON.parse(old)))));
+    }
+    const value = JSON.parse(read(AVATAR) ?? 'null');
     if (isAvatar(value)) {
       saveAvatar(value);
       return value;

@@ -1,8 +1,9 @@
 <!--
   The agent maker: Folio's emblem maker in the agent theme (vendor/ewo; development/plans/emblems.md),
   arrows on either side of the big agent like Kritzle's and Schätzle's, one pair per part, top to
-  bottom (hat, eyes, disguise, collar, skin), and a dice for all five. The user, 2026-10-08: tabs with
-  one pair lost taps, and five pairs are enough (the colour part went). Dressed as a photo clipped into
+  bottom (hat, hair, face, collar, skin), and a dice for all five. The user, 2026-10-08: tabs with
+  one pair lost taps, and five pairs are enough (the colour part went); 2026-10-13: agents can be women
+  too, still in five rows (the eyes and the disguise became one face row). Dressed as a photo clipped into
   the file: the stage is a mugshot.
 -->
 <script lang="ts">

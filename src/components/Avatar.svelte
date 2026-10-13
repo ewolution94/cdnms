@@ -1,5 +1,5 @@
 <!--
-  A player's agent from their six numbers, drawn by Folio's agent emblem (src/lib/avatar.ts): a bust
+  A player's agent from their five numbers, drawn by Folio's agent emblem (src/lib/avatar.ts): a bust
   in a round dossier photo, with an ink ring.
 -->
 <script lang="ts">

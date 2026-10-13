@@ -66,8 +66,8 @@ cards, picture cards or both, mostly played on a video call. Live at
   `en.mjs`), most with two meanings; no word on a list contains another. Work-safe.
 - **Picture motifs:** 165 line drawings on a 24-unit grid (`server/pictures/motifs.mjs`), 49 with a
   hollow where a second motif fits.
-- **Faces:** Folio's emblems in their agent theme (`<ewo-emblem>`, `<ewo-emblem-maker>`: hat, eyes,
-  disguise, collar, skin), dressed as mugshots clipped into the file.
+- **Faces:** Folio's emblems in their agent theme (`<ewo-emblem>`, `<ewo-emblem-maker>`: hat, hair,
+  face, collar, skin; women and men alike), dressed as mugshots clipped into the file.
 - **Visit counts:** `/_e.js` and `/_e` are forwarded to Census over the shared Docker network
   (`server/census.mjs`), adding only `X-Site: cdnms`. Without `CDNMS_CENSUS` (local runs) the
   forwarder answers with an empty beacon and counts nothing.
