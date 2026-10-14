@@ -403,7 +403,7 @@
     z-index: 6;
     max-width: 90%;
     margin: 0;
-    padding: 8px 14px 7px;
+    padding: 7.5px 14px;
     border: 2.5px solid var(--stamp);
     border-radius: 4px;
     background: rgb(251 247 236 / 0.94);

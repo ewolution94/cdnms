@@ -80,7 +80,13 @@ npm run dev          # http://localhost:6250, the game server included
 npm run check        # svelte-check / TypeScript
 npm test             # unit tests: the game, clue checks, words, pictures, Census (Node 24+)
 npm run build && npm start   # production server on :8080 (or --port 6251)
+AUDIT=1 node tools/qa.mjs http://localhost:6251   # every screen in WebKit, with the text-centring audit
 ```
+
+`tools/qa.mjs` walks a host, a guest, bots and the big screen through every screen (`W`, `H`, `LANG_UI`,
+`CARDS`), checks for overflow and console errors, and with `AUDIT=1` that every label sits in the
+middle of its box (`tools/text-audit.mjs`, from the workspace's `plans/text-centering.md`). Not in CI:
+it borrows Playwright from Folio's checkout next door.
 
 ## Deploy (NAS)
 

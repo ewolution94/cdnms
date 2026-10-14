@@ -52,7 +52,7 @@
   }
   .maker::part(tag) {
     z-index: 2;
-    padding: 5px 10px 4px;
+    padding: 4.5px 10px;
     border: 1px solid var(--line);
     border-radius: 2px;
     background: var(--paper);

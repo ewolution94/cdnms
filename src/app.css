@@ -7,7 +7,21 @@
 @import '@fontsource/big-shoulders-stencil/latin-700.css';
 @import '@fontsource/big-shoulders-stencil/latin-800.css';
 @import '@fontsource/big-shoulders-stencil/latin-ext-800.css';
-@import '@fontsource/special-elite/latin-400.css';
+
+/* The typewriter, with fontsource's file but our own line box: as shipped its capitals sit 0.14 em
+   above the middle of their line (ascent 0.70, descent 0.30, caps 0.69), so every stamp, the room
+   code and a typed clue sat high in its box. The same height, the caps in its middle (measured in
+   WebKit and Chromium, 2026-10-14; development/plans/text-centering.md). */
+@font-face {
+  font-family: 'Special Elite';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../node_modules/@fontsource/special-elite/files/special-elite-latin-400-normal.woff2') format('woff2'),
+    url('../node_modules/@fontsource/special-elite/files/special-elite-latin-400-normal.woff') format('woff');
+  ascent-override: 84.5%;
+  descent-override: 15.5%;
+}
 
 :root,
 :root[data-theme='dark'] {
@@ -125,7 +139,7 @@ button {
 /* A rubber stamp: outlined capitals, a little crooked, the ink soaked into the paper. */
 .stamp {
   display: inline-block;
-  padding: 4px 8px 3px;
+  padding: 3.5px 8px;
   border: 2.5px solid currentColor;
   border-radius: 4px;
   color: var(--stamp);
