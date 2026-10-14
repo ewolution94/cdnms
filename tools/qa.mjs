@@ -11,7 +11,7 @@
 //   AUDIT=1 node tools/qa.mjs …                  plus the text audits at every shot
 import { webkit } from '../../folio/node_modules/playwright/index.mjs';
 import { mkdirSync } from 'node:fs';
-import { digitAudit, textAudit } from './text-audit.mjs';
+import { digitAudit, stackAudit, textAudit } from './text-audit.mjs';
 
 const BASE = process.argv[2] ?? 'http://localhost:6251';
 const OUT = process.argv[3] ?? '/tmp/cdnms-qa/';
@@ -22,6 +22,10 @@ const CARDS = process.env.CARDS ?? 'words';
 const AUDIT = process.env.AUDIT ? Number(process.env.AUDIT) : 0;
 // A log entry is a row with the clue on top and the guesses under it, not a centred label.
 const AUDIT_SKIP = ['li.entry'];
+// For stacked lines: panels whose content starts at their top by design (a team's list, the dock, what
+// was meant, the room card), and the big screen's scores, one row of a name and a bigger number, each
+// centred on its own (their baselines differ, so they read as two lines).
+const STACK_SKIP = ['section.team', 'form.dock', 'section.meant', 'section.roomcard', 'span.score'];
 const offCentre = new Map();
 const oldDigits = new Map();
 mkdirSync(OUT, { recursive: true });
@@ -58,6 +62,10 @@ async function shot(p, label) {
   if (AUDIT) {
     for (const row of await p.page.evaluate(textAudit, { min: AUDIT, skip: AUDIT_SKIP })) {
       const key = `${row.where} | ${row.text}`;
+      if (!offCentre.has(key)) offCentre.set(key, { ...row, at: `${p.name} ${label}` });
+    }
+    for (const row of await p.page.evaluate(stackAudit, { min: AUDIT, skip: [...AUDIT_SKIP, ...STACK_SKIP] })) {
+      const key = `stack | ${row.where} | ${row.text}`;
       if (!offCentre.has(key)) offCentre.set(key, { ...row, at: `${p.name} ${label}` });
     }
     for (const row of await p.page.evaluate(digitAudit)) {
@@ -211,7 +219,10 @@ await browser.close();
 
 if (AUDIT) {
   say(`\ntext off its box's middle (≥ ${AUDIT} px; + low, − high; bias = the font's share):`);
-  for (const r of offCentre.values()) say(`  ${String(r.off).padStart(5)} (bias ${r.bias})  ${r.font} h${r.height}  ${r.where}  "${r.text}"  [${r.at}]`);
+  for (const r of offCentre.values()) {
+    const what = r.lines ? `${r.lines} lines stacked` : `(bias ${r.bias})  ${r.font}`;
+    say(`  ${String(r.off).padStart(5)} ${what} h${r.height}  ${r.where}  "${r.text}"  [${r.at}]`);
+  }
   if (!offCentre.size) say('  none');
   say('old-style digits:');
   for (const r of oldDigits.values()) say(`  ${r.font}  ${r.where}  "${r.text}"  [${r.at}]`);
