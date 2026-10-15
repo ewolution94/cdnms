@@ -25,7 +25,9 @@
 
 :root,
 :root[data-theme='dark'] {
-  color-scheme: light;
+  /* `only`: Chrome on Android otherwise darkens the light page itself (auto dark mode; a plain
+     `light` doesn't stop it, learnings/css-and-layout.md). */
+  color-scheme: only light;
   --ewo-light: 1;
 
   --manila: #e3cf9c;
