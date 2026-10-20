@@ -79,6 +79,7 @@ npm install
 npm run dev          # http://localhost:6250, the game server included
 npm run check        # svelte-check / TypeScript
 npm test             # unit tests: the game, clue checks, words, pictures, Census (Node 24+)
+npm run test:sim     # simulated games: bots play a whole game through the rooms (local only, not in CI)
 npm run build && npm start   # production server on :8080 (or --port 6251)
 AUDIT=1 node tools/qa.mjs http://localhost:6251   # every screen in WebKit, with the text-centring audit
 ```

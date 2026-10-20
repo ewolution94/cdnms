@@ -289,24 +289,6 @@ test('a spymaster who leaves mid-game: the host is told, and seats someone else'
   assert.equal(pa.view.notice, null);
 });
 
-test('bots play a whole game to its end', () => {
-  const { games, clock } = setup(11);
-  const host = games.create({ name: 'Anna' });
-  const page = watch(games, host.code, host.player);
-  const act = (action, body = {}) => games.act(host.code, host.token, action, body);
-  act('seat', { team: null });
-  act('bot', { add: true, team: 0, role: 'spy' });
-  act('bot', { add: true, team: 0, role: 'op' });
-  act('bot', { add: true, team: 1, role: 'spy' });
-  act('bot', { add: true, team: 1, role: 'op' });
-  act('settings', { cards: 'mixed' });
-  act('start');
-  for (let i = 0; i < 400 && page.view.phase === 'play'; i++) clock.advance(1000);
-  assert.equal(page.view.phase, 'final');
-  assert.ok(page.view.game.clues.length >= 1);
-  assert.ok(page.view.game.winner === 0 || page.view.game.winner === 1);
-});
-
 test('play again: spymasters move on in each team, the tally stays', () => {
   const { act, pa, anna, ben, lea, mia, spyOf, opOf } = started();
   const key = keyOf(pa);
