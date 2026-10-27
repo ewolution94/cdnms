@@ -1,9 +1,12 @@
 // What a device remembers: the name and avatar you play under, the host's own words, and your seat
 // in each room (so a reload, or the phone locking mid-game, puts you back in the same seat with
-// your score). Storage can be blocked; then nothing is remembered and everything still works.
+// your score). The name and the agent also go to Folio's shared cookie, so they follow you to the
+// other ewolution games (development/plans/emblems.md). Storage can be blocked; then nothing is
+// remembered and everything still works.
 
 import type { Seat } from './api';
-import { fromFiveParts, fromSixParts, isAvatar, randomAvatar, type Avatar } from './avatar';
+import { fromFiveParts, fromSixParts, type Avatar } from './avatar';
+import { playerEmblem, shareEmblem, sharedName, shareName } from '../../vendor/ewo/elements/emblem-shared.js';
 
 const NAME = 'cdnms:name';
 /** Today's avatar (hat, hair, face, collar, skin); `cdnms:avatar` held the one from before 2026-10-13. */
@@ -29,11 +32,18 @@ function write(key: string, value: string | null) {
   }
 }
 
-export const savedName = () => read(NAME) ?? '';
-export const saveName = (name: string) => write(NAME, name.trim() || null);
+/** The name field's maxlength: a name from another game may be longer. */
+const NAME_MAX = 16;
 
-/** Your avatar; a random one (kept from then on) the first time. One saved before 2026-10-13 becomes
- * the same agent in today's parts. */
+/** The name you last joined with, here or in another ewolution game. */
+export const savedName = () => (sharedName() || read(NAME) || '').slice(0, NAME_MAX);
+export function saveName(name: string) {
+  write(NAME, name.trim() || null);
+  shareName(name);
+}
+
+/** Your agent: the one you last picked (kept in the shared cookie too), else this game's own, else a random
+ * one (kept from then on). One saved before 2026-10-13 becomes the same agent in today's parts. */
 export function savedAvatar(): Avatar {
   try {
     const old = read(OLD_AVATAR);
@@ -41,19 +51,24 @@ export function savedAvatar(): Avatar {
       write(OLD_AVATAR, null);
       if (read(AVATAR) === null) write(AVATAR, JSON.stringify(fromFiveParts(fromSixParts(JSON.parse(old)))));
     }
-    const value = JSON.parse(read(AVATAR) ?? 'null');
-    if (isAvatar(value)) {
-      saveAvatar(value);
-      return value;
-    }
   } catch {
-    // a new one below
+    // nothing to carry over
   }
-  const fresh = randomAvatar();
-  saveAvatar(fresh);
-  return fresh;
+  let own: unknown = null;
+  try {
+    own = JSON.parse(read(AVATAR) ?? 'null');
+  } catch {
+    // a new one
+  }
+  const avatar = playerEmblem('agent', own) as Avatar;
+  write(AVATAR, JSON.stringify(avatar));
+  return avatar;
 }
-export const saveAvatar = (a: Avatar) => write(AVATAR, JSON.stringify(a));
+/** An avatar picked in the maker: kept here and shared with the other games. */
+export function saveAvatar(a: Avatar) {
+  write(AVATAR, JSON.stringify(a));
+  shareEmblem('agent', a);
+}
 
 /** The host's own words, kept for the next game they host. */
 export const savedCustom = () => read(CUSTOM) ?? '';
