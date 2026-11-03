@@ -245,16 +245,19 @@
     width: min(46%, 52cqh);
     opacity: 0.85;
   }
-  /* The assassin's cross, as a stamp. */
+  /* The assassin's cross, as a stamp: the stamp's red through an X drawn in SVG, its bars what
+     41%–59% bands of two ±45° gradients made (18% of the diagonal: 25.46 of 100). A slanted
+     gradient's hard stop draws as stairs, in Safari however soft (learnings/css-and-layout.md). */
   .cross {
+    --x: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M0 0L100 100M100 0L0 100' stroke='%23000' stroke-width='25.46'/%3E%3C/svg%3E");
     position: absolute;
     top: 4px;
     right: 5px;
     width: min(14px, 26cqh);
     height: min(14px, 26cqh);
-    background:
-      linear-gradient(45deg, transparent 41%, var(--stamp) 41% 59%, transparent 59%),
-      linear-gradient(-45deg, transparent 41%, var(--stamp) 41% 59%, transparent 59%);
+    background: var(--stamp);
+    -webkit-mask-image: var(--x);
+    mask-image: var(--x);
   }
 
   /* Chosen by the spymaster: lifted, outlined, clipped. */
