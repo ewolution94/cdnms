@@ -108,6 +108,7 @@ This mirrors Schätzle, Vollmond and Kritzle:
 | `PORT` / `--port` | `8080` | Listen port |
 | `HOST` | `0.0.0.0` | Listen address |
 | `CDNMS_CENSUS` | off | Census's ingest origin, `http://census:4901` on the NAS |
+| `DASHBOARD_URL` | off | Dashboard's apps' port, `http://dashboard:8081` on the NAS: the language and sounds a device that hasn't picked starts from (set for CDNMS; the family's don't reach past its own German and sounds on). Off or down: the built-in ones, as before |
 
 ## Project layout
 

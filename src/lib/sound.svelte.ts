@@ -1,15 +1,21 @@
 // Sounds, made on the spot with Web Audio: no files, no third parties. On by default, switched per
-// device in Settings (`cdnms:sound`). A browser only plays sound after a tap, so the context starts
-// on the first pointer or key press. On a call each device plays its own.
+// device in Settings (`cdnms:sound`); a device that hasn't switched them takes Dashboard's value for
+// CDNMS when the owner set one (src/lib/defaults.ts). A browser only plays sound after a tap, so the
+// context starts on the first pointer or key press. On a call each device plays its own.
+
+import { readConfig } from '../../vendor/ewo/elements/config-client.js';
+import { soundsFor } from './defaults';
 
 const KEY = 'cdnms:sound';
 
 function stored() {
+  let saved: string | null = null;
   try {
-    return localStorage.getItem(KEY) !== 'off';
+    saved = localStorage.getItem(KEY);
   } catch {
-    return true;
+    // storage blocked: the default
   }
+  return soundsFor(saved, readConfig().sounds);
 }
 
 export const sound = $state({ on: stored() });

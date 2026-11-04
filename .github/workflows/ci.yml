@@ -82,3 +82,24 @@ jobs:
           # The Census forwarder is wired in; without CDNMS_CENSUS it answers locally.
           test "$(curl -s -o /dev/null -w '%{http_code}' $base/_e.js)" = 200
           test "$(curl -s -o /dev/null -w '%{http_code}' -X POST --data '{}' $base/_e)" = 204
+          # Without Dashboard: its values block in the page with the built-in ones, and the manifest.
+          curl -sf $base/ | grep -q '<script type="application/json" id="ewo-config">{"lang":"de","sounds":true}</script>'
+          curl -sf $base/KXPT/screen | grep -q 'id="ewo-config"'
+          curl -sf $base/ewo.config.json | grep -q '"app": "cdnms"'
+
+      # The server against a stand-in for Dashboard's apps' port: it takes the manifest, the English
+      # set for CDNMS reaches the page, and the family's sounds off doesn't get past CDNMS's own on.
+      - name: Smoke test Dashboard's values
+        run: |
+          node --input-type=module -e "
+            import http from 'node:http';
+            http.createServer((req, res) => {
+              if (req.method === 'PUT' && req.url === '/v1/manifest/cdnms') { req.resume(); return res.writeHead(204).end(); }
+              if (req.url === '/v1/config/cdnms') return res.writeHead(200, { 'content-type': 'application/json', etag: '\"1\"' }).end(JSON.stringify({ family: { lang: 'de', sounds: false }, app: { lang: 'en' } }));
+              res.writeHead(404).end();
+            }).listen(6298);
+          " &
+          DASHBOARD_URL=http://127.0.0.1:6298 PORT=6297 node server/server.mjs &
+          for _ in $(seq 1 20); do curl -sf http://127.0.0.1:6297/healthz && break; sleep 0.5; done
+          for _ in $(seq 1 20); do curl -sf http://127.0.0.1:6297/ | grep -q '"lang":"en"' && break; sleep 0.5; done
+          curl -sf http://127.0.0.1:6297/ | grep -q '{"lang":"en","sounds":true}'
